@@ -1,0 +1,3 @@
+gateware/**/build
+.cache
+__pycache__
