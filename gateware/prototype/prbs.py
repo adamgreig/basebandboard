@@ -19,6 +19,7 @@ class PRBS(Module):
     k must be one of (7, 9, 11, 15, 20, 23, 31).
     """
     def __init__(self, k):
+        # `o` is a single bit which outputs the PRBS sequence.
         self.o = Signal()
 
         ###
