@@ -30,34 +30,6 @@ pub fn berlekamp_massey(s: &BinaryVector) -> BinaryPolynomial {
     c
 }
 
-/// Find the minimal polynomial which generates the sequence `s`,
-/// using the Berlekamp-Massey algorithm.
-#[allow(dead_code)]
-pub fn old_berlekamp_massey(s: &BinaryVector) -> BinaryPolynomial {
-    let mut c = vec![0u8; s.n];
-    c[0] = 1;
-    let mut b = c.clone();
-    let mut l = 0usize;
-    let mut m = -1i32;
-    for n in 0..s.n {
-        let p = BinaryPolynomial::from_coefficients(&c[..l+1]);
-        let x = s.slice((s.n-n-1)..(s.n-n+l));
-        let d = p.eval(&x);
-        if d == 1 {
-            let t = c.clone();
-            for (idx, i) in ((n as i32 - m)..(s.n as i32)).enumerate() {
-                c[i as usize] ^= b[idx];
-            }
-            if l <= n/2 {
-                l = n + 1 - l;
-                m = n as i32;
-                b = t.clone();
-            }
-        }
-    }
-    BinaryPolynomial::from_coefficients(&c[..l+1])
-}
-
 #[cfg(test)]
 mod tests {
     use ::{BinaryVector, berlekamp_massey};

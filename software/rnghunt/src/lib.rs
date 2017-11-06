@@ -9,7 +9,6 @@ pub use binary_vector::BinaryVector;
 pub use binary_matrix::BinaryMatrix;
 pub use binary_polynomial::BinaryPolynomial;
 pub use berlekamp_massey::berlekamp_massey;
-pub use berlekamp_massey::old_berlekamp_massey;
 
 /// Compute the number of u64 words required to store n bits.
 #[inline(always)]
