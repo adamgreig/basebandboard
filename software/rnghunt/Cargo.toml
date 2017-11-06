@@ -1,0 +1,6 @@
+[package]
+name = "rnghunt"
+version = "0.1.0"
+authors = ["Adam Greig <adam@adamgreig.com>"]
+
+[dependencies]
