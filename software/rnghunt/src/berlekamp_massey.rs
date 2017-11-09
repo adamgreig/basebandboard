@@ -19,7 +19,7 @@ pub fn berlekamp_massey(s: &BinaryVector) -> BinaryPolynomial {
             c.coefficients.n = s.n;
             b.coefficients.n = s.n;
             let offset = ((n as i32) - m) as usize;
-            c.coefficients ^= (&b.coefficients >> offset).slice(0..s.n);
+            c.coefficients ^= &(&b.coefficients >> offset).slice(0..s.n);
             if l <= n/2 {
                 l = n + 1 - l;
                 m = n as i32;

@@ -48,14 +48,7 @@ impl BinaryPolynomial {
     /// `coefficients` is the slice `[c0, c1, c2, ..., cN]` that represent
     /// the polynomial `c0.x^N + c1.x^(N-1) + ... + cN`. Each entry must be 0 or 1.
     pub fn from_coefficients(coefficients: &[u8]) -> BinaryPolynomial {
-        let mut start = 0;
-        for (idx, c) in coefficients.iter().enumerate() {
-            if *c == 1 {
-                start = idx;
-                break;
-            }
-        }
-        BinaryPolynomial { coefficients: BinaryVector::from_bits(&coefficients[start..]) }
+        BinaryPolynomial { coefficients: BinaryVector::from_bits(coefficients) }
     }
 
     /// Return the degree of this polynomial, i.e. the highest non-zero-coefficient power.
@@ -89,6 +82,54 @@ impl BinaryPolynomial {
         }
         parity
     }
+
+    /// Evaluate the product with `g` mod `p`, returning the result as a new BinaryPolynomial.
+    pub fn modmult(&self, g: &BinaryPolynomial, p: &BinaryPolynomial) -> BinaryPolynomial {
+        // We have:
+        // self = f(x) = a_n x^n + ... + a_1 x + a_0
+        //    g = g(x) = b_n x^n + ... + b_1 x + b_0
+        //
+        // Write the product as
+        // f(x).g(x)   = a_0.g(x) + a_1.x.g(x) + ... + a_n.x^n.g(x)
+        //
+        // Note that x.g(x) is just a left shift of the coefficients of g(x), so we can go
+        // through each coefficient of f(x), and if it's 1, accumulate g(x), then always
+        // left-shift g(x) by one to prepare it for the next coefficient check.
+        //
+        // To maintain the (mod p(x)) property, we check at each step if g(x) exceeds
+        // the degree of p(x), and subtract p(x) if so.
+
+        assert_eq!(self.coefficients.n, g.coefficients.n);
+        assert_eq!(self.coefficients.n, p.coefficients.n);
+
+        let degree_p = p.degree() as usize;
+
+        // Take a copy of g as we'll be shifting it in-place.
+        let mut gs = g.clone();
+
+        // Prepare a result the same size as p but zeroed
+        let mut r = p.clone();
+        r.coefficients ^= &p.coefficients;
+
+        // For each bit set in self, starting at the lowest...
+        for bit in 0..((self.degree()+1) as usize) {
+            // If this bit is set, we accumulate the current shifted version of g
+            if self.coefficients[degree_p-bit] {
+                r.coefficients ^= &gs.coefficients;
+            }
+
+            // Multiply gs by x. We have to increase the bit length as well.
+            gs.coefficients <<= 1;
+            gs.coefficients.n += 1;
+
+            // Mod p(x)
+            if gs.coefficients[0] {
+                gs.coefficients ^= &p.coefficients;
+            }
+        }
+
+        r
+    }
 }
 
 #[cfg(test)]
@@ -103,11 +144,9 @@ mod tests {
         // x^3
         let p = BinaryPolynomial::from_coefficients(&[0, 1, 0, 0, 0]);
         assert_eq!(p.degree(), 3);
-        assert_eq!(p.coefficients.to_bits(), &[1, 0, 0, 0]);
         // x^0
         let p = BinaryPolynomial::from_coefficients(&[0, 0, 0, 0, 0, 0, 1]);
         assert_eq!(p.degree(), 0);
-        assert_eq!(p.coefficients.to_bits(), &[1]);
         // 0
         let p = BinaryPolynomial::from_coefficients(&[0]);
         assert_eq!(p.degree(), -1);
@@ -141,5 +180,38 @@ mod tests {
         let y = BinaryVector::from_words(256, &[
             0x6375252384DE2649, 0x15C4FC9E04004D91, 0x2FE1EF103A5A9D6D, 0xBA9BA69D6FE360E0]);
         assert_eq!(p.eval(&y), 0);
+    }
+
+    #[test]
+    fn test_modmult() {
+        // x^6 is suitably big to not have any effect
+        let p = BinaryPolynomial::from_coefficients(&[1, 0, 0, 0, 0, 0, 0]);
+
+        // f(x) = x^2
+        let f = BinaryPolynomial::from_coefficients(&[0, 0, 0, 0, 1, 0, 0]);
+
+        // g(x) = x + 1
+        let g = BinaryPolynomial::from_coefficients(&[0, 0, 0, 0, 0, 1, 1]);
+
+        // f(x) * g(x) = x^2 * (x+1) = x^3 + x^2
+        let fg = f.modmult(&g, &p);
+        assert_eq!(fg.coefficients.to_bits(), vec![0, 0, 0, 1, 1, 0, 0]);
+
+        // Try a new test with squaring and multiplying by x and where p(x) becomes effective
+        let p = BinaryPolynomial::from_coefficients(&[1, 1, 0, 0, 1]);
+        let mut f = BinaryPolynomial::from_coefficients(&[0, 0, 0, 1, 0]);
+        let x = BinaryPolynomial::from_coefficients(&[0, 0, 0, 1, 0]);
+
+        // x * x = x^2
+        f = f.modmult(&f, &p);
+        assert_eq!(f.coefficients.to_bits(), vec![0, 0, 1, 0, 0]);
+
+        // x^2 * x^2 = x^4, mod p(x) = x^3+1
+        f = f.modmult(&f, &p);
+        assert_eq!(f.coefficients.to_bits(), vec![0, 1, 0, 0, 1]);
+
+        // x^4 * x = x^5, mod p(x) = x^3 + x + 1
+        f = f.modmult(&x, &p);
+        assert_eq!(f.coefficients.to_bits(), vec![0, 1, 0, 1, 1]);
     }
 }

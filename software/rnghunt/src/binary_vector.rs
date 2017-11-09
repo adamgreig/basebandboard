@@ -8,7 +8,7 @@ use std::fmt;
 
 use ::numwords;
 
-/// A binary matrix of length (n).
+/// A binary vector of length (n).
 #[derive(Clone,Debug)]
 pub struct BinaryVector {
     pub n: usize,
@@ -50,8 +50,8 @@ impl<'a> BitAnd for &'a BinaryVector {
     }
 }
 
-impl BitAndAssign for BinaryVector {
-    fn bitand_assign(&mut self, rhs: Self) {
+impl<'a> BitAndAssign<&'a BinaryVector> for BinaryVector {
+    fn bitand_assign(&mut self, rhs: &BinaryVector) {
         assert_eq!(self.n, rhs.n);
         for wordidx in 0..numwords(self.n) {
             self.data[wordidx] &= rhs.data[wordidx];
@@ -71,8 +71,8 @@ impl<'a> BitOr for &'a BinaryVector {
     }
 }
 
-impl BitOrAssign for BinaryVector {
-    fn bitor_assign(&mut self, rhs: Self) {
+impl<'a> BitOrAssign<&'a BinaryVector> for BinaryVector {
+    fn bitor_assign(&mut self, rhs: &BinaryVector) {
         assert_eq!(self.n, rhs.n);
         for wordidx in 0..numwords(self.n) {
             self.data[wordidx] |= rhs.data[wordidx];
@@ -92,8 +92,8 @@ impl<'a> BitXor for &'a BinaryVector {
     }
 }
 
-impl BitXorAssign for BinaryVector {
-    fn bitxor_assign(&mut self, rhs: Self) {
+impl<'a> BitXorAssign<&'a BinaryVector> for BinaryVector {
+    fn bitxor_assign(&mut self, rhs: &BinaryVector) {
         assert_eq!(self.n, rhs.n);
         for wordidx in 0..numwords(self.n) {
             self.data[wordidx] ^= rhs.data[wordidx];
@@ -407,7 +407,7 @@ mod tests {
     fn test_bitandassign() {
         let mut x = BinaryVector::from_words(96, &[0x883C385E66BD8704, 0xE43A5DF300000000]);
         let y = BinaryVector::from_words(96, &[0xA8F3B1900CC10FFF, 0x38A599C200000000]);
-        x &= y;
+        x &= &y;
         let z = BinaryVector::from_words(96, &[0x883C385E66BD8704 & 0xA8F3B1900CC10FFF,
                                                0xE43A5DF300000000 & 0x38A599C200000000]);
         assert_eq!(x, z);
@@ -426,7 +426,7 @@ mod tests {
     fn test_bitorassign() {
         let mut x = BinaryVector::from_words(96, &[0x883C385E66BD8704, 0xE43A5DF300000000]);
         let y = BinaryVector::from_words(96, &[0xA8F3B1900CC10FFF, 0x38A599C200000000]);
-        x |= y;
+        x |= &y;
         let z = BinaryVector::from_words(96, &[0x883C385E66BD8704 | 0xA8F3B1900CC10FFF,
                                                0xE43A5DF300000000 | 0x38A599C200000000]);
         assert_eq!(x, z);
@@ -445,7 +445,7 @@ mod tests {
     fn test_bitxorassign() {
         let mut x = BinaryVector::from_words(96, &[0x883C385E66BD8704, 0xE43A5DF300000000]);
         let y = BinaryVector::from_words(96, &[0xA8F3B1900CC10FFF, 0x38A599C200000000]);
-        x ^= y;
+        x ^= &y;
         let z = BinaryVector::from_words(96, &[0x883C385E66BD8704 ^ 0xA8F3B1900CC10FFF,
                                                0xE43A5DF300000000 ^ 0x38A599C200000000]);
         assert_eq!(x, z);
