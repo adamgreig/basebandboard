@@ -176,40 +176,40 @@ impl BinaryPolynomial {
         return f.coefficients.data == one.coefficients.data;
     }
 
-    /// Evaluates if an irreducible polynomial is primitive.
+    /// Evaluates if a polynomial is primitive.
     pub fn is_primitive(&self) -> bool {
-        // No point checking 0-degree polynomials
+        // No point checking 0-degree polynomials.
         if self.degree() == -1 {
             return true;
         }
 
-        // All primitive polynomials must have nonzero constant term
+        // All primitive polynomials must have nonzero constant term.
         if !self.coefficients[self.coefficients.n - 1] {
             return false;
         }
 
-        // Must have an odd number of nonzero terms
+        // Must have an odd number of nonzero terms.
         if self.coefficients.count_ones() % 2 != 1 {
             return false;
         }
 
-        println!("Checking primitivity of {}, degree is {}", self, self.degree());
+        // Fetch the value for r and its prime factors from the precomputed tables.
         let factors = get_factors(self.degree() as usize);
-        println!("Got factors: {:?}", factors);
 
-        // 2^k - 1 mod p must be 1 for k=degree(p)
+        // 2^k - 1 mod p must be 1 for k=degree(p).
         if !self.check_integer(&factors[0]) {
             return false;
         }
 
+        // 2^m mod p must be 0 for all m in {r/k_i} where r is as above and k_i
+        // are the unique prime factors of r.
         for factor in &factors[1..] {
-            println!("    Testing factor {}", factor);
             if self.check_integer(&factor) {
-                println!("      Test failed, not primitive!");
                 return false;
             }
         }
-        println!("    All factors passed, primitive.");
+
+        // If all tests passed, it's primitive.
         true
     }
 }
