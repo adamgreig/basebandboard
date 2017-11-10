@@ -302,6 +302,25 @@ impl BinaryVector {
             BinaryVector { n: n, data: data }
         }
     }
+
+    /// Find the index of the first bit set. Returns n if no bits are set.
+    pub fn firstbit(&self) -> usize {
+        for i in 0..self.n {
+            if self[i] {
+                return i;
+            }
+        }
+        self.n
+    }
+
+    /// Return the total number of 1 bits
+    pub fn count_ones(&self) -> u32 {
+        let mut count = 0;
+        for word in &self.data {
+            count += word.count_ones();
+        }
+        count
+    }
 }
 
 #[cfg(test)]
@@ -579,5 +598,27 @@ mod tests {
         assert_eq!(x, y);
         assert_ne!(y, z);
         assert_ne!(z, w);
+    }
+
+    #[test]
+    fn test_firstbit() {
+        let x = BinaryVector::from_bits(&[0, 0, 0, 0]);
+        assert_eq!(x.firstbit(), 4);
+        let x = BinaryVector::from_bits(&[0, 1, 0, 0]);
+        assert_eq!(x.firstbit(), 1);
+        let x = BinaryVector::from_words(96, &[0x883C385E66BD8704, 0xE43A5DF300000000]);
+        assert_eq!(x.firstbit(), 0);
+        let x = BinaryVector::from_words(96, &[0x003C385E66BD8704, 0xE43A5DF300000000]);
+        assert_eq!(x.firstbit(), 10);
+        let x = BinaryVector::from_words(96, &[0x0, 0x743A5DF300000000]);
+        assert_eq!(x.firstbit(), 65);
+    }
+
+    #[test]
+    fn test_count_ones() {
+        let x = BinaryVector::from_bits(&[0, 1, 0, 1, 0]);
+        assert_eq!(x.count_ones(), 2);
+        let x = BinaryVector::from_words(128, &[0x1111, 0x2222]);
+        assert_eq!(x.count_ones(), 8);
     }
 }

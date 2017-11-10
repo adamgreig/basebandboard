@@ -1,4 +1,5 @@
 use ::BinaryVector;
+use ::factors::get_factors;
 
 use std::ops::Index;
 use std::fmt;
@@ -112,9 +113,9 @@ impl BinaryPolynomial {
         r.coefficients ^= &p.coefficients;
 
         // For each bit set in self, starting at the lowest...
-        for bit in 0..((self.degree()+1) as usize) {
+        for bit in 1..((self.degree()+2) as usize) {
             // If this bit is set, we accumulate the current shifted version of g
-            if self.coefficients[degree_p-bit] {
+            if self.coefficients[self.coefficients.n - bit] {
                 r.coefficients ^= &gs.coefficients;
             }
 
@@ -123,12 +124,93 @@ impl BinaryPolynomial {
             gs.coefficients.n += 1;
 
             // Mod p(x)
-            if gs.coefficients[0] {
+            if gs.coefficients[gs.coefficients.n - degree_p - 1] {
                 gs.coefficients ^= &p.coefficients;
             }
         }
 
         r
+    }
+
+    /// Evaluate x^k mod self. k is interpreted as a large binary integer.
+    pub fn modexp(&self, k: &BinaryVector) -> BinaryPolynomial {
+        // Start at f=1. Need to construct f with same length as self.
+        let offset = (64 - (self.coefficients.n % 64)) % 64;
+        let mut f = self.clone();
+        f.coefficients ^= &self.coefficients;
+        f.coefficients.data[self.coefficients.data.len()-1] = 1<<offset;
+
+        if k.firstbit() == k.n {
+            return f;
+        }
+
+        // Construct the polynomial x, also same length as self.
+        let mut x = f.clone();
+        x.coefficients.data[self.coefficients.data.len()-1] = 2<<offset;
+
+        f.coefficients.data[self.coefficients.data.len()-1] = 2<<offset;
+
+        // For each bit after the MSb in the binary expansion of k, we evaluate f <- f.f mod p,
+        // and if that bit is 1, we further evaluate f <- x.f mod p, so by the end
+        // we have evaluated x^k mod p, without ever exceeding the degree of p.
+        for bit in (k.firstbit()+1)..k.n {
+            f = f.modmult(&f, &self);
+            if k[bit] {
+                f = f.modmult(&x, &self);
+            }
+        }
+
+        f
+    }
+
+    /// Checks if x^k mod self is integer (==1). k is interpreted as a large binary integer.
+    pub fn check_integer(&self, k: &BinaryVector) -> bool {
+        let f = self.modexp(k);
+
+        // Construct the polynomial 1 with the same length as self.
+        let offset = (64 - (self.coefficients.n % 64)) % 64;
+        let mut one = self.clone();
+        one.coefficients ^= &self.coefficients;
+        one.coefficients.data[self.coefficients.data.len()-1] = 1<<offset;
+
+        return f.coefficients.data == one.coefficients.data;
+    }
+
+    /// Evaluates if an irreducible polynomial is primitive.
+    pub fn is_primitive(&self) -> bool {
+        // No point checking 0-degree polynomials
+        if self.degree() == -1 {
+            return true;
+        }
+
+        // All primitive polynomials must have nonzero constant term
+        if !self.coefficients[self.coefficients.n - 1] {
+            return false;
+        }
+
+        // Must have an odd number of nonzero terms
+        if self.coefficients.count_ones() % 2 != 1 {
+            return false;
+        }
+
+        println!("Checking primitivity of {}, degree is {}", self, self.degree());
+        let factors = get_factors(self.degree() as usize);
+        println!("Got factors: {:?}", factors);
+
+        // 2^k - 1 mod p must be 1 for k=degree(p)
+        if !self.check_integer(&factors[0]) {
+            return false;
+        }
+
+        for factor in &factors[1..] {
+            println!("    Testing factor {}", factor);
+            if self.check_integer(&factor) {
+                println!("      Test failed, not primitive!");
+                return false;
+            }
+        }
+        println!("    All factors passed, primitive.");
+        true
     }
 }
 
@@ -198,20 +280,89 @@ mod tests {
         assert_eq!(fg.coefficients.to_bits(), vec![0, 0, 0, 1, 1, 0, 0]);
 
         // Try a new test with squaring and multiplying by x and where p(x) becomes effective
-        let p = BinaryPolynomial::from_coefficients(&[1, 1, 0, 0, 1]);
-        let mut f = BinaryPolynomial::from_coefficients(&[0, 0, 0, 1, 0]);
-        let x = BinaryPolynomial::from_coefficients(&[0, 0, 0, 1, 0]);
+        let p = BinaryPolynomial::from_coefficients(&[0, 1, 1, 0, 0, 1]);
+        let mut f = BinaryPolynomial::from_coefficients(&[0, 0, 0, 0, 1, 0]);
+        let x = BinaryPolynomial::from_coefficients(&[0, 0, 0, 0, 1, 0]);
 
         // x * x = x^2
         f = f.modmult(&f, &p);
-        assert_eq!(f.coefficients.to_bits(), vec![0, 0, 1, 0, 0]);
+        assert_eq!(f.coefficients.to_bits(), vec![0, 0, 0, 1, 0, 0]);
 
         // x^2 * x^2 = x^4, mod p(x) = x^3+1
         f = f.modmult(&f, &p);
-        assert_eq!(f.coefficients.to_bits(), vec![0, 1, 0, 0, 1]);
+        assert_eq!(f.coefficients.to_bits(), vec![0, 0, 1, 0, 0, 1]);
 
         // x^4 * x = x^5, mod p(x) = x^3 + x + 1
         f = f.modmult(&x, &p);
-        assert_eq!(f.coefficients.to_bits(), vec![0, 1, 0, 1, 1]);
+        assert_eq!(f.coefficients.to_bits(), vec![0, 0, 1, 0, 1, 1]);
+
+        // Large polynomials
+        let p = BinaryPolynomial { coefficients: BinaryVector::from_words(256, &[
+            0x01000000_00000000, 0x00000000_00000000, 0x00000000_00000000, 0x00000000_00000000])};
+        let f = BinaryPolynomial { coefficients: BinaryVector::from_words(256, &[
+            0x00000000_00000000, 0x10000000_10000000, 0x10000000_10000000, 0x00000000_00000000])};
+        let g = BinaryPolynomial { coefficients: BinaryVector::from_words(256, &[
+            0x00000000_00000000, 0x00000000_00000000, 0x00000000_00000000, 0x00000000_00003010])};
+        let fg = BinaryPolynomial { coefficients: BinaryVector::from_words(256, &[
+            0x00000000_00000301, 0x00000301_00000301, 0x00000301_00000000, 0x00000000_00000000])};
+        let result = f.modmult(&g, &p);
+        assert_eq!(result.coefficients.data, fg.coefficients.data);
+    }
+
+    #[test]
+    fn test_modexp() {
+        // First test a few values with degree(p)>k so mod doesn't come into it.
+        let p = BinaryPolynomial { coefficients: BinaryVector::from_words(256, &[
+            0x00000000_00000001, 0x00000000_00000000, 0x00000000_00000000, 0x00000000_00000000])};
+        assert_eq!(format!("{}", p.modexp(&BinaryVector::from_words(64, &[0]))), "1");
+        assert_eq!(format!("{}", p.modexp(&BinaryVector::from_words(64, &[1]))), "x");
+        assert_eq!(format!("{}", p.modexp(&BinaryVector::from_words(64, &[2]))), "x^2");
+        assert_eq!(format!("{}", p.modexp(&BinaryVector::from_words(64, &[20]))), "x^20");
+        assert_eq!(format!("{}", p.modexp(&BinaryVector::from_words(64, &[100]))), "x^100");
+
+        // Test a few with an effective polynomial
+        let p = BinaryPolynomial::from_coefficients(&[1, 1, 0, 0, 1]);
+        assert_eq!(format!("{}", p.modexp(&BinaryVector::from_words(64, &[15]))), "1");
+    }
+
+    #[test]
+    fn test_check_integer() {
+        // x^4 + x^3 + 1, a primitive polynomial
+        let p = BinaryPolynomial::from_coefficients(&[1, 1, 0, 0, 1]);
+        // Since p is primitive, all x^k mod p for k<(2^4 - 1) should be non-integer,
+        // while x^k for k=2^4 - 1 should be 1.
+        for k in 1..15 {
+            assert!(!p.check_integer(&BinaryVector::from_words(64, &[k])));
+        }
+        assert!(p.check_integer(&BinaryVector::from_words(64, &[15])));
+
+        // x^200 + x^5 + x^3 + x^2 + 1, another primitive polynomial
+        let p = BinaryPolynomial { coefficients: BinaryVector::from_words(256, &[
+            0x00000000_00000100, 0x00000000_00000000, 0x00000000_00000000, 0x00000000_0000002d])};
+        assert_eq!(format!("{}", p), "x^200 + x^5 + x^3 + x^2 + 1");
+        // Try the first few. We don't have time to try 2^200 possibilities...
+        for k in 1..100 {
+            assert!(!p.check_integer(&BinaryVector::from_words(64, &[k])));
+        }
+        // 2^200 - 1 should be integer
+        let r = BinaryVector::from_words(256, &[
+            0xff, 0xffff_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff]);
+        assert!(p.check_integer(&r));
+    }
+
+    #[test]
+    fn test_is_primitive() {
+        // x^4 + x^3 + 1 is primitive
+        let p = BinaryPolynomial::from_coefficients(&[1, 1, 0, 0, 1]);
+        assert!(p.is_primitive());
+
+        // x^4 + x^2 + x + 1 is not primitive (you can reduce it by x+1).
+        let p = BinaryPolynomial::from_coefficients(&[1, 0, 1, 1, 1]);
+        assert!(!p.is_primitive());
+
+        // x^200 + x^5 + x^3 + x^2 + 1 is primitive
+        let p = BinaryPolynomial { coefficients: BinaryVector::from_words(256, &[
+            0x00000000_00000100, 0x00000000_00000000, 0x00000000_00000000, 0x00000000_0000002d])};
+        assert!(p.is_primitive());
     }
 }

@@ -4,6 +4,8 @@ mod binary_vector;
 mod binary_matrix;
 mod binary_polynomial;
 mod berlekamp_massey;
+mod factors_data;
+mod factors;
 
 pub use binary_vector::BinaryVector;
 pub use binary_matrix::BinaryMatrix;
