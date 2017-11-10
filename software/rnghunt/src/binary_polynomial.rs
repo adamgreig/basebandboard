@@ -1,4 +1,4 @@
-use ::BinaryVector;
+use ::{BinaryVector, numwords};
 use ::factors::get_factors;
 
 use std::ops::Index;
@@ -68,13 +68,13 @@ impl BinaryPolynomial {
     /// The sequence must have the same length as the polynomial, i.e., x.n == p.degree()+1.
     pub fn eval(&self, x: &BinaryVector) -> u8 {
         assert_eq!(x.n as isize, self.degree()+1);
-        assert_eq!(x.data.len(), self.coefficients.data.len());
+        assert_eq!(x.n, self.coefficients.n);
         let mut parity = 0u8;
         // We want to find the inner product of the coefficients with x.
         // We can first compute the products by ANDing the underlying words together,
         // and then we just need the parity (even/odd number of bits set) in the result.
-        for (idx, word) in self.coefficients.data.iter().enumerate() {
-            let mut v = word & x.data[idx];
+        for idx in 0..numwords(x.n) {
+            let mut v = self.coefficients.data[idx] & x.data[idx];
             v ^= v >> 32;
             v ^= v >> 16;
             v ^= v >> 8;

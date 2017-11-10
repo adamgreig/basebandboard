@@ -1,5 +1,7 @@
 // Copyright 2017 Adam Greig
 
+extern crate rand;
+
 mod binary_vector;
 mod binary_matrix;
 mod binary_polynomial;

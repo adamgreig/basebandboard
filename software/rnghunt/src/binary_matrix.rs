@@ -1,5 +1,7 @@
 // Copyright 2017 Adam Greig
 
+use rand;
+use rand::distributions::{IndependentSample, Range};
 use ::{BinaryVector, numwords};
 
 /// A binary matrix of shape (nrows, ncols).
@@ -21,7 +23,7 @@ impl BinaryMatrix {
     /// Construct a BinaryMatrix from the given u64 words, which store the matrix bits
     /// in column-major form (i.e., the first word is the first 64 bits of the first
     /// column of the matrix, with the bit from the first row corresponding to the MSb).
-    /// If the number of columns is not a multiple of 64, the final word for each column
+    /// If the number of rows is not a multiple of 64, the final word for each column
     /// is zero-padded in the lower bits, so that each column starts on a word boundary.
     pub fn from_words(nrows: usize, ncols: usize, words: &[u64]) -> BinaryMatrix {
         BinaryMatrix { nrows: nrows, ncols: ncols, words_per_col: numwords(nrows),
@@ -58,6 +60,35 @@ impl BinaryMatrix {
             }
         }
         BinaryVector { n: self.nrows, data: out }
+    }
+
+    /// Using self as a recurrence matrix, iterate n times starting from x,
+    /// return a new BinaryVector of the bits in the first position at each step.
+    pub fn recur(&self, x: &BinaryVector, n: usize) -> BinaryVector {
+        let mut bits = Vec::with_capacity(n);
+        let mut x = x.clone();
+        for _ in 0..n {
+            x = self.dot(&x);
+            bits.push(x[0] as u8);
+        }
+        BinaryVector::from_bits(&bits)
+    }
+
+    /// Create a new random binary matrix with `nrows` rows and `ncols` columns,
+    /// where the rows have weights chosen uniformly at random from `rowweights`.
+    pub fn random(nrows: usize, ncols: usize, rowweights: &[usize]) -> BinaryMatrix {
+        let words_per_col = numwords(nrows);
+        let mut data = vec![0u64; words_per_col * ncols];
+        let mut rng = rand::thread_rng();
+        let weightrange = Range::new(0, rowweights.len());
+        for rowidx in 0..nrows {
+            let weight = rowweights[weightrange.ind_sample(&mut rng)];
+            let cols = rand::sample(&mut rng, 0..ncols, weight);
+            for colidx in &cols {
+                data[colidx*words_per_col + rowidx/64] |= 1<<(63-(rowidx%64));
+            }
+        }
+        BinaryMatrix { nrows: nrows, ncols: ncols, words_per_col: words_per_col, data: data }
     }
 }
 
@@ -137,5 +168,34 @@ mod tests {
             1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0,
             1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0,
             0, 1, 0, 0, 1, 0]);
+    }
+
+    #[test]
+    fn test_recur() {
+        let words = [
+            0x7400000000000000, 0x5800000000000000, 0xC500000000000000, 0xD000000000000000,
+            0xD500000000000000, 0xE600000000000000, 0xF100000000000000, 0x4700000000000000];
+        let a = BinaryMatrix::from_words(8, 8, &words);
+        let b = BinaryVector::from_bits(&[1, 0, 1, 0, 1, 0, 1, 0]);
+        let x = a.recur(&b, 24);
+        assert_eq!(x.to_bits(), vec![
+            1, 0, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0]);
+    }
+
+    #[test]
+    fn test_random() {
+        let a = BinaryMatrix::random(8, 8, &[5]);
+        for rowidx in 0..8 {
+            let row = a.row(rowidx);
+            let rowweight = row.to_bits().iter().fold(0, |acc, &x| acc + x);
+            assert_eq!(rowweight, 5);
+        }
+
+        let a = BinaryMatrix::random(8, 8, &[2, 4]);
+        for rowidx in 0..8 {
+            let row = a.row(rowidx);
+            let rowweight = row.to_bits().iter().fold(0, |acc, &x| acc + x);
+            assert!(rowweight==2 || rowweight==4);
+        }
     }
 }

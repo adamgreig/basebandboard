@@ -51,4 +51,12 @@ mod tests {
         let p = berlekamp_massey(&s);
         assert_eq!(format!("{}", p), "x^16 + x^14 + x^13 + x^11 + 1");
     }
+
+    #[test]
+    fn test_berlekamp_massey_long() {
+        // Maximum length 64-bit LFSR
+        let s = BinaryVector::from_bitstring("10110100101101001011010010110100101101001011010010110100101101010111110101111101011111010111110101111101011111010111110101110010");
+        let p = berlekamp_massey(&s);
+        assert_eq!(format!("{}", p), "x^64 + x^62 + x^61 + x + 1");
+    }
 }

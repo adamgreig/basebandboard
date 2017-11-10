@@ -27,6 +27,14 @@ def pack_matrix(a):
     return ", ".join("0x{}".format(word) for word in words)
 
 
+def recur(a, x, n):
+    out = []
+    for _ in range(n):
+        x = np.mod(np.dot(a, x), 2)
+        out.append(x[0][0])
+    return out
+
+
 if __name__ == "__main__":
     import sys
     nrows = int(sys.argv[1])
@@ -42,3 +50,5 @@ if __name__ == "__main__":
     print("a words:", pack_matrix(a))
     print("b:", b.T.tolist())
     print("a.b:", np.mod(np.dot(a, b), 2).T.tolist())
+    x = recur(a, b, 32)
+    print("32 recurrences of a.b first bit:", x)
