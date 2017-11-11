@@ -360,6 +360,12 @@ mod tests {
         let p = BinaryPolynomial::from_coefficients(&[1, 0, 1, 1, 1]);
         assert!(!p.is_primitive());
 
+        // This random primitive polynomial
+        let p = BinaryPolynomial::from_coefficients(&[
+            1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0,
+            1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1]);
+        assert!(p.is_primitive());
+
         // x^200 + x^5 + x^3 + x^2 + 1 is primitive
         let p = BinaryPolynomial { coefficients: BinaryVector::from_words(256, &[
             0x00000000_00000100, 0x00000000_00000000, 0x00000000_00000000, 0x00000000_0000002d])};

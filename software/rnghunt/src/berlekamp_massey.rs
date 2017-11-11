@@ -27,7 +27,7 @@ pub fn berlekamp_massey(s: &BinaryVector) -> BinaryPolynomial {
             }
         }
     }
-    c
+    BinaryPolynomial { coefficients: c.coefficients.slice(0..l+1) }
 }
 
 #[cfg(test)]
@@ -54,6 +54,11 @@ mod tests {
 
     #[test]
     fn test_berlekamp_massey_long() {
+        // Some random 33-tap sequence
+        let s = BinaryVector::from_bitstring("101010100110010000111101100101010011111000110110100010111010101011");
+        let p = berlekamp_massey(&s);
+        assert_eq!(format!("{}", p), "x^33 + x^31 + x^29 + x^26 + x^24 + x^22 + x^19 + x^14 + x^8 + x^7 + x^2 + 1");
+
         // Maximum length 64-bit LFSR
         let s = BinaryVector::from_bitstring("10110100101101001011010010110100101101001011010010110100101101010111110101111101011111010111110101111101011111010111110101110010");
         let p = berlekamp_massey(&s);

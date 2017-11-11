@@ -7,16 +7,26 @@ use threadpool::ThreadPool;
 use std::time::Duration;
 
 fn main() {
-    let n = 31;
+    let n = 32;
     let (tx, rx) = channel();
-    let pool = ThreadPool::new(num_cpus::get());
+    let n_threads = num_cpus::get();
+    let pool = ThreadPool::new(n_threads);
     loop {
         if pool.active_count() < pool.max_count() {
             let tx = tx.clone();
             pool.execute(move|| {
-                loop {
+                'outer: loop {
                     // Make a random binary matrix of shape (n, n) where rows have 3 or 4 1s.
                     let a = rnghunt::BinaryMatrix::random(n, n, &[3, 4]);
+
+                    // Check no columns have weight < 2.
+                    for colidx in 0..n {
+                        let col = a.col(colidx);
+                        let colweight = col.to_bits().iter().fold(0, |acc, &x| acc + x);
+                        if colweight < 2 {
+                            continue 'outer;
+                        }
+                    }
 
                     // Obtain a length 2n sequence output from this recurrence matrix
                     let b = rnghunt::BinaryVector::from_bits(&vec![1u8; n]);
@@ -27,15 +37,18 @@ fn main() {
 
                     // Check the polynomial has degree equal to n
                     if p.degree() != n as isize {
-                        break;
+                        continue;
                     }
 
                     // Check if the polynomial is primitive
                     if p.is_primitive() {
-                        println!("Found primitive polynomial for n={}:", n);
-                        println!("a: [");
+                        println!("Found suitable recurrence matrix for n={}:", n);
+                        for row in 0..n {
+                            println!("{}", a.row(row));
+                        }
+                        println!("\nWords: [");
                         for word in &a.data {
-                            print!(" 0x{:x}, ", word);
+                            print!("0x{:016x}, ", word);
                         }
                         println!("]");
                         tx.send(()).unwrap();
