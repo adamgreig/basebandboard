@@ -1,5 +1,6 @@
 import sys
 import numpy as np
+import subprocess
 
 lines = []
 
@@ -22,3 +23,10 @@ for _ in range(2*n):
     seq.append(b[0][0])
 
 print("Generated sequence:", "".join(str(x) for x in seq))
+
+subprocess.run(["./ppsearch", "bma={}".format("".join(str(x) for x in seq)),
+                "testprimitivity"])
+
+from PIL import Image
+im = Image.fromarray(255 - a * 255)
+im.save("out.png")

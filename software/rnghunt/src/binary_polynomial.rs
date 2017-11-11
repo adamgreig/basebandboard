@@ -134,21 +134,20 @@ impl BinaryPolynomial {
 
     /// Evaluate x^k mod self. k is interpreted as a large binary integer.
     pub fn modexp(&self, k: &BinaryVector) -> BinaryPolynomial {
-        // Start at f=1. Need to construct f with same length as self.
-        let offset = (64 - (self.coefficients.n % 64)) % 64;
-        let mut f = self.clone();
-        f.coefficients ^= &self.coefficients;
-        f.coefficients.data[self.coefficients.data.len()-1] = 1<<offset;
-
+        // First check if k==0, in which case just return 1.
         if k.firstbit() == k.n {
-            return f;
+            let mut bits = vec![0u8; self.coefficients.n];
+            bits[self.coefficients.n - 1] = 1;
+            return BinaryPolynomial { coefficients: BinaryVector::from_bits(&bits) };
         }
 
         // Construct the polynomial x, also same length as self.
-        let mut x = f.clone();
-        x.coefficients.data[self.coefficients.data.len()-1] = 2<<offset;
+        let mut bits = vec![0u8; self.coefficients.n];
+        bits[self.coefficients.n - 2] = 1;
+        let x = BinaryPolynomial { coefficients: BinaryVector::from_bits(&bits) };
 
-        f.coefficients.data[self.coefficients.data.len()-1] = 2<<offset;
+        // Starting with f=x, we square and multiply up to f=2^k
+        let mut f = x.clone();
 
         // For each bit after the MSb in the binary expansion of k, we evaluate f <- f.f mod p,
         // and if that bit is 1, we further evaluate f <- x.f mod p, so by the end
@@ -168,10 +167,9 @@ impl BinaryPolynomial {
         let f = self.modexp(k);
 
         // Construct the polynomial 1 with the same length as self.
-        let offset = (64 - (self.coefficients.n % 64)) % 64;
-        let mut one = self.clone();
-        one.coefficients ^= &self.coefficients;
-        one.coefficients.data[self.coefficients.data.len()-1] = 1<<offset;
+        let mut bits = vec![0u8; self.coefficients.n];
+        bits[self.coefficients.n - 1] = 1;
+        let one = BinaryPolynomial { coefficients: BinaryVector::from_bits(&bits) };
 
         return f.coefficients.data == one.coefficients.data;
     }
@@ -320,7 +318,7 @@ mod tests {
         assert_eq!(format!("{}", p.modexp(&BinaryVector::from_words(64, &[20]))), "x^20");
         assert_eq!(format!("{}", p.modexp(&BinaryVector::from_words(64, &[100]))), "x^100");
 
-        // Test a few with an effective polynomial
+        // Test with an effective polynomial
         let p = BinaryPolynomial::from_coefficients(&[1, 1, 0, 0, 1]);
         assert_eq!(format!("{}", p.modexp(&BinaryVector::from_words(64, &[15]))), "1");
     }

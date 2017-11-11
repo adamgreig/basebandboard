@@ -1,6 +1,7 @@
 // Copyright 2017 Adam Greig
 
 use rand;
+use rand::Rng;
 use rand::distributions::{IndependentSample, Range};
 use ::{BinaryVector, numwords};
 
@@ -75,17 +76,25 @@ impl BinaryMatrix {
     }
 
     /// Create a new random binary matrix with `nrows` rows and `ncols` columns,
-    /// where the rows have weights chosen uniformly at random from `rowweights`.
+    /// where the rows have weights chosen uniformly at random from `rowweights`,
+    /// and the columns are selected lowest-weight-first to ensure uniform weights.
     pub fn random(nrows: usize, ncols: usize, rowweights: &[usize]) -> BinaryMatrix {
         let words_per_col = numwords(nrows);
         let mut data = vec![0u64; words_per_col * ncols];
         let mut rng = rand::thread_rng();
+        let mut colweights = vec![0usize; ncols];
         let weightrange = Range::new(0, rowweights.len());
         for rowidx in 0..nrows {
             let weight = rowweights[weightrange.ind_sample(&mut rng)];
-            let cols = rand::sample(&mut rng, 0..ncols, weight);
-            for colidx in &cols {
+            let mut chosencols: Vec<usize> = Vec::with_capacity(weight);
+            for _ in 0..weight {
+                let mincolweight = *colweights.iter().min().unwrap();
+                let candidates: Vec<usize> = (0..ncols).filter(
+                    |x| colweights[*x] == mincolweight && !chosencols.contains(x)).collect();
+                let colidx = rng.choose(&candidates).unwrap();
                 data[colidx*words_per_col + rowidx/64] |= 1<<(63-(rowidx%64));
+                colweights[*colidx] += 1;
+                chosencols.push(*colidx);
             }
         }
         BinaryMatrix { nrows: nrows, ncols: ncols, words_per_col: words_per_col, data: data }
