@@ -22,7 +22,7 @@ fn main() {
             pool.execute(move|| {
                 'outer: loop {
                     // Make a random binary matrix of shape (n, n) where rows have 3 or 4 1s.
-                    let a = rnghunt::BinaryMatrix::random(n, n, &[3, 4]);
+                    let a = rnghunt::BinaryMatrix::random(n, n, &[3, 4, 4, 4, 4, 4, 4, 4]);
 
                     // Obtain a length 2n sequence output from this recurrence matrix
                     let b = rnghunt::BinaryVector::from_bits(&vec![1u8; n]);
