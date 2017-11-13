@@ -1,3 +1,4 @@
+import numpy as np
 from migen import Module, Signal
 from migen.build.platforms import de0nano
 from rng import LUTOPT, CLTGRNG
@@ -41,13 +42,16 @@ packed = [
     [58, 76, 78, 101], [13, 14, 39, 79], [17, 65, 87, 96], [57, 60, 71, 98],
     [24, 104, 123, 124]]
 
+n = len(packed)
+logn = int(np.log2(n))
 urng = LUTOPT.from_packed(packed)
 grng = CLTGRNG(urng)
 
 m = Module()
 m.submodules.grng = grng
-m.comb += gpio.eq(m.grng.x[48:80])
+m.comb += gpio[:logn].eq(m.grng.x)
 
-plat.build(m)
-prog = plat.create_programmer()
-prog.load_bitstream("build/top.sof")
+if __name__ == "__main__":
+    plat.build(m)
+    prog = plat.create_programmer()
+    prog.load_bitstream("build/top.sof")

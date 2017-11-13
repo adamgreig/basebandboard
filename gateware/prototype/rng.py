@@ -63,30 +63,30 @@ class CLTGRNG(Module):
     The result is generated on each clock cycle, and has mean 0 (as a signed
     integer) and variance equal to 2**(log2(n)-2), where n is the width of the
     input URNG.
+
+    Outputs `x` each clock cycle, which is signed, has width log2(n),
+    is Gaussian-distributed, and is log2(n) clock cycles delayed from urng.
     """
     def __init__(self, urng):
         """
-        `urng` must be provided, a n-bit wide uniform RNG module with output x.
-
-        Outputs `x` each clock cycle, which is the same width as `urng.x` but
-        Gaussian-distributed and some clock cycles delayed.
+        `urng` must be provided, a n-bit wide uniform RNG module with output x,
+        where n is a power of two.
         """
-        self.x = Signal(urng.x.nbits)
-
-        self.submodules.urng = urng
-
         n = urng.x.nbits
         logn = int(np.log2(n))
+
+        self.x = Signal((logn, True))
+        self.submodules.urng = urng
 
         # We have logn levels of registers (including the output).
         # The first level contains n/2 Signals, each 2 bits wide, and is
         # computed directly from the input signal. The next level is n/4
-        # Signals, each 4 bits wide, and so on until the final level,
-        # which has just 1 Signal which is n bits wide (the output).
+        # Signals, each 3 bits wide, and so on until the final level,
+        # which has just 1 Signal which is logn bits wide (the output).
         self.levels = [[] for _ in range(logn)]
         for level in range(logn):
             level_n = 2**(logn - level - 1)
-            level_bits = n//level_n
+            level_bits = level+2
             self.levels[level] = [Signal((level_bits, True))
                                   for _ in range(level_n)]
 
