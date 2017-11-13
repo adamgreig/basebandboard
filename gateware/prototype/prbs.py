@@ -8,7 +8,8 @@ import pytest
 from migen import Module, Signal, Cat
 from migen.sim import run_simulation
 
-# These are the taps for each PRBS sequence which are not the MSb
+# These are the taps for each PRBS sequence which are not the MSb,
+# i.e., for PRBS9, we have x^9 + x^5 + 1, where 5 comes from this dict.
 TAPS = {7: 6, 9: 5, 11: 9, 15: 14, 20: 3, 23: 18, 31: 28}
 
 
