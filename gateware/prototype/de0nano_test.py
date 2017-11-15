@@ -1,10 +1,14 @@
 import numpy as np
-from migen import Module, Signal
+from migen import Module, Signal, ClockDomain
 from migen.build.platforms import de0nano
 from rng import LUTOPT, CLTGRNG
+from prbs import PRBS
+from bitshaper import PRBSShaper
 
 plat = de0nano.Platform()
-gpio = plat.request("gpio_0")
+gpio0 = plat.request("gpio_0")
+gpio1 = plat.request("gpio_1")
+clk50 = plat.request("clk50")
 
 packed = [
     [6, 24, 41, 99], [5, 42, 89, 112], [36, 54, 110, 122], [16, 63, 86, 94],
@@ -47,9 +51,25 @@ logn = int(np.log2(n))
 urng = LUTOPT.from_packed(packed)
 grng = CLTGRNG(urng)
 
+prbs = PRBS(9)
+t = np.arange(-32, 32)
+β = 0.5
+c = 1/8 * np.sinc(t/8) * np.cos(np.pi * β * t/8)/(1-((2*β*t/8)**2))
+c[t == 8/(2*β)] = c[t == -8/(2*β)] = np.pi/(4*8) * np.sinc(1/(2*β))
+c = (c*1700).astype(np.int)
+c = c.tolist()
+setsel = Signal(5, reset=0)
+shaper = PRBSShaper(prbs, setsel, [c]*32)
+
+
 m = Module()
+m.clock_domains.sys = ClockDomain("sys")
+m.comb += m.sys.clk.eq(clk50)
+m.sync += setsel.eq(gpio1[:5])
 m.submodules.grng = grng
-m.comb += gpio[:logn].eq(m.grng.x)
+m.comb += gpio0[12:logn].eq(m.grng.x)
+m.submodules.shaper = shaper
+m.comb += gpio0[:12].eq(m.shaper.x)
 
 if __name__ == "__main__":
     plat.build(m)

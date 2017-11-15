@@ -155,9 +155,6 @@ def test_cltgrng():
     n = len(packed)
     logn = int(np.log2(n))
 
-    def tb_urng():
-        yield
-
     def tb():
         # Run a few cycles of the URNG to warm it up and fill up the
         # register hierarchy of the GRNG.
