@@ -4,6 +4,7 @@ Shape a bitstream into oversampled pulses.
 Copyright 2017 Adam Greig
 """
 
+import numpy as np
 from migen import Module, Signal, ClockDomain, Cat, Memory
 from migen.fhdl.decorators import ClockDomainsRenamer
 
@@ -84,9 +85,30 @@ class PRBSShaper(Module):
         self.x = Signal((12, True))
         self.sync += self.x.eq(self.adders1[0] + self.adders1[1])
 
+    @classmethod
+    def from_rcf(cls, prbs, setsel, betas):
+        """
+        Create a PRBSShaper where the pulse shapes are raised cosine pulses
+        with rolloff coefficients given by betas. Creates len(betas) pulse
+        shapes, in order, and if there were less than 32 sets, also adds
+        a very simple rectangular pulse shape to the end of the list.
+        """
+        T = 8
+        cc = []
+        for β in betas:
+            t = np.arange(-32, 32)
+            replace = np.where(np.abs(t) == T/(2*β))
+            t[replace] = 0
+            c = 1/T * np.sinc(t/T) * np.cos(np.pi * β * t/T)/(1-(2*β*t/T)**2)
+            c[replace] = np.pi/(4*T) * np.sinc(1/(2*β))
+            cc.append((c * T * 254).astype(np.int).tolist())
+        if len(cc) < 32:
+            cc.append([0]*30 + [254]*4 + [0]*30)
+        return cls(prbs, setsel, cc)
 
-def test_prbs_shaper_simple():
-    import numpy as np
+
+def test_prbs_shaper():
+    import scipy.signal
     from prbs import PRBS
     from migen.sim import run_simulation
 
@@ -94,13 +116,14 @@ def test_prbs_shaper_simple():
     prbs9 = PRBS(9)
 
     # Generate a raised cosine pulse shape, and convert to fixed point
-    t = np.arange(-32, 32)
+    T = 8
     β = 0.5
-    c = 1/8 * np.sinc(t/8) * np.cos(np.pi * β * t/8)/(1-((2*β*t/8)**2))
-    c[t == 8/(2*β)] = c[t == -8/(2*β)] = np.pi/(4*8) * np.sinc(1/(2*β))
-    scale = 254/c.max()
-    c = (c*scale).astype(np.int)
-    c = c.tolist()
+    t = np.arange(-32, 32)
+    replace = np.where(np.abs(t) == T/(2*β))
+    t[replace] = 0
+    c = 1/T * np.sinc(t/T) * np.cos(np.pi * β * t/T)/(1-(2*β*t/T)**2)
+    c[replace] = np.pi/(4*T) * np.sinc(1/(2*β))
+    c = (c * T * 254).astype(np.int).tolist()
 
     # We'll only use a single coefficient set here
     setsel = Signal(5, reset=0)
@@ -109,17 +132,24 @@ def test_prbs_shaper_simple():
     shaper = PRBSShaper(prbs9, setsel, [c])
 
     def tb():
+        # Run the HDL, recording the PRBS sequence and the shaped output
         prbs = []
         shaped = []
         for _ in range(320):
             prbs.append((yield shaper.prbs.x))
             shaped.append((yield shaper.x))
             yield
-        np.savez_compressed("shaped.npz", prbs=prbs, shaped=shaped, c=c)
-        # TODO: Find some way to test this.
-        # eg: scipy.signal.lfilter(c, [1], 2*prbs-1)
-        # Need to handle offset (ok), weird scaling (???), and
-        # not-quite-matched response (?????)
-        assert(False)
+
+        # Use scipy to filter the same PRBS through the same impulse response,
+        # and check the results match. We turn the PRBS into a corresponding
+        # sequence with +-1 pulses at the midpoint of each longer bit period
+        # in the simulated prbs output, and we have to compensate for the
+        # HDL's pipeline delay before comparing results.
+        b = np.array(c)
+        x = 2*np.array(prbs) - 1
+        y = np.zeros(x.size)
+        y[4::8] = x[4::8]
+        f = scipy.signal.lfilter(b, [1], y)
+        assert np.all(f[60:-13] == shaped[73:])
 
     run_simulation(shaper, tb(), clocks={"sys": 10, "prbsclk": 80})
