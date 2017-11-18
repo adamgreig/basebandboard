@@ -17,5 +17,7 @@ print("Col weights:", a.sum(axis=0))
 
 packed = [np.where(a[i])[0].tolist() for i in range(n)]
 
-print("Packed:")
-print(packed)
+print("Packed:\n[")
+for subs in (packed[i:i+3] for i in range(0, n, 3)):
+    print(*subs, sep=", ", end=",\n")
+print("]")

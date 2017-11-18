@@ -97,10 +97,12 @@ class PRBSShaper(Module):
         cc = []
         for β in betas:
             t = np.arange(-32, 32)
-            replace = np.where(np.abs(t) == T/(2*β))
-            t[replace] = 0
+            if β != 0.0:
+                replace = np.where(np.abs(t) == T/(2*β))
+                t[replace] = 0
             c = 1/T * np.sinc(t/T) * np.cos(np.pi * β * t/T)/(1-(2*β*t/T)**2)
-            c[replace] = np.pi/(4*T) * np.sinc(1/(2*β))
+            if β != 0.0:
+                c[replace] = np.pi/(4*T) * np.sinc(1/(2*β))
             cc.append((c * T * 254).astype(np.int).tolist())
         if len(cc) < 32:
             cc.append([0]*30 + [254]*4 + [0]*30)
