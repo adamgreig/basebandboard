@@ -1,5 +1,4 @@
-EESchema Schematic File Version 3
-LIBS:agg-kicad
+EESchema Schematic File Version 4
 LIBS:adcdac-cache
 EELAYER 26 0
 EELAYER END
@@ -16,7 +15,7 @@ Comment3 ""
 Comment4 ""
 $EndDescr
 $Comp
-L CONN_02x20 J1
+L agg-kicad:CONN_02x20 J1
 U 1 1 59F92C23
 P 1550 5600
 F 0 "J1" H 1450 5700 50  0000 L CNN
@@ -28,7 +27,7 @@ F 4 "1885912" H 1550 5600 60  0001 C CNN "Farnell"
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR016
+L agg-kicad:GND #PWR016
 U 1 1 59F92C2A
 P 2200 6100
 F 0 "#PWR016" H 2070 6140 50  0001 L CNN
@@ -39,7 +38,7 @@ F 3 "" H 2200 6100 60  0001 C CNN
 	0    -1   -1   0   
 $EndComp
 $Comp
-L GND #PWR017
+L agg-kicad:GND #PWR017
 U 1 1 59F92C30
 P 2200 7000
 F 0 "#PWR017" H 2070 7040 50  0001 L CNN
@@ -66,7 +65,7 @@ GPIO0_04
 Text Label 1250 6000 2    60   ~ 0
 GPIO0_06
 $Comp
-L 5v #PWR01
+L agg-kicad:5v #PWR01
 U 1 1 59F92C51
 P 800 6100
 F 0 "#PWR01" H 800 6210 50  0001 L CNN
@@ -129,7 +128,7 @@ GPIO0_30
 Text Label 1250 7500 2    60   ~ 0
 GPIO0_32
 $Comp
-L AD9218 IC9
+L agg-kicad:AD9218 IC9
 U 1 1 59F95162
 P 8200 2350
 F 0 "IC9" H 7700 3850 50  0000 L CNN
@@ -141,7 +140,7 @@ F 4 "2376664" H 7700 550 50  0001 L CNN "Farnell"
 	1    0    0    -1  
 $EndComp
 $Comp
-L AD9744 IC5
+L agg-kicad:AD9744 IC5
 U 1 1 59F95376
 P 5350 5750
 F 0 "IC5" H 4850 6950 50  0000 L CNN
@@ -157,7 +156,7 @@ GPIO0_IN0
 Text Label 1250 5700 2    60   ~ 0
 GPIO0_IN1
 $Comp
-L AD8041 IC8
+L agg-kicad:AD8041 IC8
 U 1 1 59F9571A
 P 7550 5750
 F 0 "IC8" H 7050 6150 50  0000 L CNN
@@ -169,7 +168,7 @@ F 4 "1660976" H 7050 5050 50  0001 L CNN "Farnell"
 	1    0    0    -1  
 $EndComp
 $Comp
-L AD8138 IC2
+L agg-kicad:AD8138 IC2
 U 1 1 59F958CE
 P 2850 1450
 F 0 "IC2" H 2550 1850 50  0000 L CNN
@@ -181,7 +180,7 @@ F 4 "2725700" H 2550 750 50  0001 L CNN "Farnell"
 	1    0    0    -1  
 $EndComp
 $Comp
-L ADP3335 IC4
+L agg-kicad:ADP3335 IC4
 U 1 1 59F95ABB
 P 3300 4750
 F 0 "IC4" H 3100 4950 50  0000 L CNN
@@ -193,7 +192,7 @@ F 4 "2067775" H 3100 4250 50  0001 L CNN "Farnell"
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR041
+L agg-kicad:GND #PWR041
 U 1 1 59F95FCD
 P 7500 2600
 F 0 "#PWR041" H 7370 2640 50  0001 L CNN
@@ -204,7 +203,7 @@ F 3 "" H 7500 2600 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR025
+L agg-kicad:GND #PWR025
 U 1 1 59F963CF
 P 4650 4800
 F 0 "#PWR025" H 4520 4840 50  0001 L CNN
@@ -215,7 +214,7 @@ F 3 "" H 4650 4800 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR026
+L agg-kicad:GND #PWR026
 U 1 1 59F963FD
 P 4650 5100
 F 0 "#PWR026" H 4520 5140 50  0001 L CNN
@@ -298,7 +297,7 @@ GPIO0_32
 Text Label 8900 950  0    60   ~ 0
 GPIO0_19
 $Comp
-L 5v #PWR021
+L agg-kicad:5v #PWR021
 U 1 1 59F987E7
 P 2950 4600
 F 0 "#PWR021" H 2950 4710 50  0001 L CNN
@@ -309,7 +308,7 @@ F 3 "" H 2950 4600 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR022
+L agg-kicad:GND #PWR022
 U 1 1 59F989DF
 P 2950 5000
 F 0 "#PWR022" H 2820 5040 50  0001 L CNN
@@ -320,7 +319,7 @@ F 3 "" H 2950 5000 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L C C7
+L agg-kicad:C C7
 U 1 1 59F98C2D
 P 2750 4800
 F 0 "C7" H 2800 4870 50  0000 C CNN
@@ -332,7 +331,7 @@ F 4 "2320814" H 0   0   60  0001 C CNN "Farnell"
 	0    1    1    0   
 $EndComp
 $Comp
-L C C8
+L agg-kicad:C C8
 U 1 1 59F98F97
 P 3700 4950
 F 0 "C8" H 3750 5020 50  0000 C CNN
@@ -344,7 +343,7 @@ F 4 "1759088" H 0   0   60  0001 C CNN "Farnell"
 	1    0    0    -1  
 $EndComp
 $Comp
-L C C9
+L agg-kicad:C C9
 U 1 1 59F9936F
 P 4000 4750
 F 0 "C9" H 4050 4820 50  0000 C CNN
@@ -356,7 +355,7 @@ F 4 "2320814" H 0   0   60  0001 C CNN "Farnell"
 	0    1    1    0   
 $EndComp
 $Comp
-L GND #PWR023
+L agg-kicad:GND #PWR023
 U 1 1 59F99446
 P 4000 5000
 F 0 "#PWR023" H 3870 5040 50  0001 L CNN
@@ -367,7 +366,7 @@ F 3 "" H 4000 5000 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L ADP3335 IC6
+L agg-kicad:ADP3335 IC6
 U 1 1 59F99A72
 P 6300 1050
 F 0 "IC6" H 6100 1250 50  0000 L CNN
@@ -379,7 +378,7 @@ F 4 "2067775" H 6100 550 50  0001 L CNN "Farnell"
 	1    0    0    -1  
 $EndComp
 $Comp
-L 5v #PWR027
+L agg-kicad:5v #PWR027
 U 1 1 59F99A79
 P 5950 900
 F 0 "#PWR027" H 5950 1010 50  0001 L CNN
@@ -390,7 +389,7 @@ F 3 "" H 5950 900 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR028
+L agg-kicad:GND #PWR028
 U 1 1 59F99A85
 P 5950 1300
 F 0 "#PWR028" H 5820 1340 50  0001 L CNN
@@ -401,7 +400,7 @@ F 3 "" H 5950 1300 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L C C13
+L agg-kicad:C C13
 U 1 1 59F99A8D
 P 5750 1100
 F 0 "C13" H 5800 1170 50  0000 C CNN
@@ -413,7 +412,7 @@ F 4 "2320814" H 0   0   60  0001 C CNN "Farnell"
 	0    1    1    0   
 $EndComp
 $Comp
-L C C17
+L agg-kicad:C C17
 U 1 1 59F99A97
 P 6700 1250
 F 0 "C17" H 6750 1320 50  0000 C CNN
@@ -425,7 +424,7 @@ F 4 "1759088" H 0   0   60  0001 C CNN "Farnell"
 	1    0    0    -1  
 $EndComp
 $Comp
-L C C19
+L agg-kicad:C C19
 U 1 1 59F99AA7
 P 7000 1050
 F 0 "C19" H 7050 1120 50  0000 C CNN
@@ -437,7 +436,7 @@ F 4 "2320814" H 0   0   60  0001 C CNN "Farnell"
 	0    1    1    0   
 $EndComp
 $Comp
-L GND #PWR038
+L agg-kicad:GND #PWR038
 U 1 1 59F99AAE
 P 7000 1300
 F 0 "#PWR038" H 6870 1340 50  0001 L CNN
@@ -448,7 +447,7 @@ F 3 "" H 7000 1300 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L 5v #PWR029
+L agg-kicad:5v #PWR029
 U 1 1 59F9A01F
 P 5700 1600
 F 0 "#PWR029" H 5700 1710 50  0001 L CNN
@@ -459,7 +458,7 @@ F 3 "" H 5700 1600 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L C C14
+L agg-kicad:C C14
 U 1 1 59F9A033
 P 5700 1950
 F 0 "C14" H 5750 2020 50  0000 C CNN
@@ -471,7 +470,7 @@ F 4 "2320814" H 0   0   60  0001 C CNN "Farnell"
 	0    1    1    0   
 $EndComp
 $Comp
-L C C20
+L agg-kicad:C C20
 U 1 1 59F9A04D
 P 6900 1750
 F 0 "C20" H 6950 1820 50  0000 C CNN
@@ -483,7 +482,7 @@ F 4 "2320814" H 0   0   60  0001 C CNN "Farnell"
 	0    1    1    0   
 $EndComp
 $Comp
-L GND #PWR039
+L agg-kicad:GND #PWR039
 U 1 1 59F9A054
 P 6900 2000
 F 0 "#PWR039" H 6770 2040 50  0001 L CNN
@@ -494,7 +493,7 @@ F 3 "" H 6900 2000 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L ADP3335 IC1
+L agg-kicad:ADP3335 IC1
 U 1 1 59F9AF25
 P 1450 4750
 F 0 "IC1" H 1250 4950 50  0000 L CNN
@@ -506,7 +505,7 @@ F 4 "2067775" H 1250 4250 50  0001 L CNN "Farnell"
 	1    0    0    -1  
 $EndComp
 $Comp
-L 5v #PWR03
+L agg-kicad:5v #PWR03
 U 1 1 59F9AF2C
 P 1100 4600
 F 0 "#PWR03" H 1100 4710 50  0001 L CNN
@@ -517,7 +516,7 @@ F 3 "" H 1100 4600 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR04
+L agg-kicad:GND #PWR04
 U 1 1 59F9AF38
 P 1100 5000
 F 0 "#PWR04" H 970 5040 50  0001 L CNN
@@ -528,7 +527,7 @@ F 3 "" H 1100 5000 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L C C1
+L agg-kicad:C C1
 U 1 1 59F9AF40
 P 900 4800
 F 0 "C1" H 950 4870 50  0000 C CNN
@@ -540,7 +539,7 @@ F 4 "2320814" H 0   0   60  0001 C CNN "Farnell"
 	0    1    1    0   
 $EndComp
 $Comp
-L C C3
+L agg-kicad:C C3
 U 1 1 59F9AF4A
 P 1850 4950
 F 0 "C3" H 1900 5020 50  0000 C CNN
@@ -552,7 +551,7 @@ F 4 "1759088" H 0   0   60  0001 C CNN "Farnell"
 	1    0    0    -1  
 $EndComp
 $Comp
-L C C5
+L agg-kicad:C C5
 U 1 1 59F9AF5A
 P 2150 4750
 F 0 "C5" H 2200 4820 50  0000 C CNN
@@ -564,7 +563,7 @@ F 4 "2320814" H 0   0   60  0001 C CNN "Farnell"
 	0    1    1    0   
 $EndComp
 $Comp
-L GND #PWR013
+L agg-kicad:GND #PWR013
 U 1 1 59F9AF61
 P 2150 5000
 F 0 "#PWR013" H 2020 5040 50  0001 L CNN
@@ -575,7 +574,7 @@ F 3 "" H 2150 5000 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L C C11
+L agg-kicad:C C11
 U 1 1 59F9B53A
 P 4250 4750
 F 0 "C11" H 4300 4820 50  0000 C CNN
@@ -587,7 +586,7 @@ F 4 "1759122" H 0   0   60  0001 C CNN "Farnell"
 	0    1    1    0   
 $EndComp
 $Comp
-L GND #PWR024
+L agg-kicad:GND #PWR024
 U 1 1 59F9B9A9
 P 4250 5000
 F 0 "#PWR024" H 4120 5040 50  0001 L CNN
@@ -598,7 +597,7 @@ F 3 "" H 4250 5000 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L C C6
+L agg-kicad:C C6
 U 1 1 59F9C153
 P 2400 4750
 F 0 "C6" H 2450 4820 50  0000 C CNN
@@ -610,7 +609,7 @@ F 4 "1759122" H 0   0   60  0001 C CNN "Farnell"
 	0    1    1    0   
 $EndComp
 $Comp
-L GND #PWR019
+L agg-kicad:GND #PWR019
 U 1 1 59F9C3AF
 P 2400 5000
 F 0 "#PWR019" H 2270 5040 50  0001 L CNN
@@ -621,7 +620,7 @@ F 3 "" H 2400 5000 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L R R19
+L agg-kicad:R R19
 U 1 1 59F9C9D6
 P 6050 6100
 F 0 "R19" H 6100 6150 50  0000 C CNN
@@ -633,7 +632,7 @@ F 4 "2447311" H 0   0   60  0001 C CNN "Farnell"
 	0    1    1    0   
 $EndComp
 $Comp
-L R R20
+L agg-kicad:R R20
 U 1 1 59F9CB9C
 P 6350 6100
 F 0 "R20" H 6400 6150 50  0000 C CNN
@@ -645,7 +644,7 @@ F 4 "2447311" H 0   0   60  0001 C CNN "Farnell"
 	0    1    1    0   
 $EndComp
 $Comp
-L GND #PWR031
+L agg-kicad:GND #PWR031
 U 1 1 59F9CC66
 P 6050 6250
 F 0 "#PWR031" H 5920 6290 50  0001 L CNN
@@ -656,7 +655,7 @@ F 3 "" H 6050 6250 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR034
+L agg-kicad:GND #PWR034
 U 1 1 59F9CDA1
 P 6350 6250
 F 0 "#PWR034" H 6220 6290 50  0001 L CNN
@@ -667,7 +666,7 @@ F 3 "" H 6350 6250 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L C C15
+L agg-kicad:C C15
 U 1 1 59F9CF15
 P 6150 6050
 F 0 "C15" H 6200 6120 50  0000 C CNN
@@ -679,7 +678,7 @@ F 4 "721980" H 0   0   60  0001 C CNN "Farnell"
 	1    0    0    -1  
 $EndComp
 $Comp
-L R R22
+L agg-kicad:R R22
 U 1 1 59F9D936
 P 6550 5750
 F 0 "R22" H 6600 5800 50  0000 C CNN
@@ -691,7 +690,7 @@ F 4 "2303091" H 0   0   60  0001 C CNN "Farnell"
 	-1   0    0    1   
 $EndComp
 $Comp
-L R R25
+L agg-kicad:R R25
 U 1 1 59F9D9ED
 P 6700 5850
 F 0 "R25" H 6750 5900 50  0000 C CNN
@@ -703,7 +702,7 @@ F 4 "2303091" H 0   0   60  0001 C CNN "Farnell"
 	-1   0    0    1   
 $EndComp
 $Comp
-L R R26
+L agg-kicad:R R26
 U 1 1 59F9E7FB
 P 7550 5150
 F 0 "R26" H 7600 5200 50  0000 C CNN
@@ -715,7 +714,7 @@ F 4 "2694886" H 0   0   60  0001 C CNN "Farnell"
 	-1   0    0    1   
 $EndComp
 $Comp
-L R R23
+L agg-kicad:R R23
 U 1 1 59F9EB8F
 P 6600 6750
 F 0 "R23" H 6650 6800 50  0000 C CNN
@@ -727,7 +726,7 @@ F 4 "2447272" H 0   0   60  0001 C CNN "Farnell"
 	0    -1   -1   0   
 $EndComp
 $Comp
-L R R24
+L agg-kicad:R R24
 U 1 1 59F9ECEE
 P 6600 6950
 F 0 "R24" H 6650 7000 50  0000 C CNN
@@ -739,7 +738,7 @@ F 4 "2447272" H 0   0   60  0001 C CNN "Farnell"
 	0    -1   -1   0   
 $EndComp
 $Comp
-L GND #PWR036
+L agg-kicad:GND #PWR036
 U 1 1 59F9EDB0
 P 6600 7000
 F 0 "#PWR036" H 6470 7040 50  0001 L CNN
@@ -754,7 +753,7 @@ DAC_AVDD
 Text Label 6550 6600 2    60   ~ 0
 DAC_AVDD
 $Comp
-L COAX P3
+L agg-kicad:COAX P3
 U 1 1 59FA04A5
 P 8900 5950
 F 0 "P3" H 8900 6050 50  0000 C CNN
@@ -766,7 +765,7 @@ F 4 "1248952" H 8900 5950 60  0001 C CNN "Farnell"
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR044
+L agg-kicad:GND #PWR044
 U 1 1 59FA058C
 P 8750 6200
 F 0 "#PWR044" H 8620 6240 50  0001 L CNN
@@ -777,7 +776,7 @@ F 3 "" H 8750 6200 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L ESD_DIODE D3
+L agg-kicad:ESD_DIODE D3
 U 1 1 59FA08EA
 P 8550 6100
 F 0 "D3" H 8500 6200 50  0000 L CNN
@@ -789,7 +788,7 @@ F 4 "2368169" H 8500 5800 50  0001 L CNN "Farnell"
 	0    1    1    0   
 $EndComp
 $Comp
-L GND #PWR042
+L agg-kicad:GND #PWR042
 U 1 1 59FA099A
 P 8550 6200
 F 0 "#PWR042" H 8420 6240 50  0001 L CNN
@@ -803,7 +802,7 @@ NoConn ~ 8150 5450
 Text Label 6950 5300 0    60   ~ 0
 DAC_AVDD
 $Comp
-L GND #PWR037
+L agg-kicad:GND #PWR037
 U 1 1 59FA1403
 P 6900 5600
 F 0 "#PWR037" H 6770 5640 50  0001 L CNN
@@ -818,7 +817,7 @@ ADC_VD
 Text Label 9050 5150 2    60   ~ 0
 DAC_AVDD
 $Comp
-L C C22
+L agg-kicad:C C22
 U 1 1 59FA1BA2
 P 9100 5250
 F 0 "C22" H 9150 5320 50  0000 C CNN
@@ -830,7 +829,7 @@ F 4 "1759122" H 0   0   60  0001 C CNN "Farnell"
 	0    1    1    0   
 $EndComp
 $Comp
-L GND #PWR045
+L agg-kicad:GND #PWR045
 U 1 1 59FA1CBF
 P 9100 5400
 F 0 "#PWR045" H 8970 5440 50  0001 L CNN
@@ -841,7 +840,7 @@ F 3 "" H 9100 5400 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR033
+L agg-kicad:GND #PWR033
 U 1 1 59FA22AD
 P 6200 4800
 F 0 "#PWR033" H 6070 4840 50  0001 L CNN
@@ -852,7 +851,7 @@ F 3 "" H 6200 4800 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L C C16
+L agg-kicad:C C16
 U 1 1 59FA248B
 P 6200 4600
 F 0 "C16" H 6250 4670 50  0000 C CNN
@@ -864,7 +863,7 @@ F 4 "1759122" H 0   0   60  0001 C CNN "Farnell"
 	0    1    1    0   
 $EndComp
 $Comp
-L R R21
+L agg-kicad:R R21
 U 1 1 59FA2DF4
 P 6400 4950
 F 0 "R21" H 6450 5000 50  0000 C CNN
@@ -876,7 +875,7 @@ F 4 "2447319" H 0   0   60  0001 C CNN "Farnell"
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR035
+L agg-kicad:GND #PWR035
 U 1 1 59FA2F09
 P 6600 4950
 F 0 "#PWR035" H 6470 4990 50  0001 L CNN
@@ -888,7 +887,7 @@ F 3 "" H 6600 4950 60  0001 C CNN
 $EndComp
 NoConn ~ 5950 5150
 $Comp
-L CONN_01x03 J2
+L agg-kicad:CONN_01x03 J2
 U 1 1 59FA3731
 P 6400 5450
 F 0 "J2" H 6350 5550 50  0000 L CNN
@@ -900,7 +899,7 @@ F 4 "3418297" H 0   0   60  0001 C CNN "Farnell"
 	-1   0    0    1   
 $EndComp
 $Comp
-L GND #PWR032
+L agg-kicad:GND #PWR032
 U 1 1 59FA3B32
 P 6250 5500
 F 0 "#PWR032" H 6120 5540 50  0001 L CNN
@@ -915,7 +914,7 @@ DAC_DVDD
 Text Label 6250 5150 0    60   ~ 0
 DAC_DVDD
 $Comp
-L CONN_01x03 J3
+L agg-kicad:CONN_01x03 J3
 U 1 1 59FA453C
 P 8800 4000
 F 0 "J3" H 8750 4100 50  0000 L CNN
@@ -927,7 +926,7 @@ F 4 "3418297" H 0   0   60  0001 C CNN "Farnell"
 	0    -1   -1   0   
 $EndComp
 $Comp
-L CONN_01x03 J4
+L agg-kicad:CONN_01x03 J4
 U 1 1 59FA46D4
 P 9650 4000
 F 0 "J4" H 9600 4100 50  0000 L CNN
@@ -939,7 +938,7 @@ F 4 "3418297" H 0   0   60  0001 C CNN "Farnell"
 	0    -1   -1   0   
 $EndComp
 $Comp
-L CONN_01x03 J5
+L agg-kicad:CONN_01x03 J5
 U 1 1 59FA474E
 P 10500 4000
 F 0 "J5" H 10450 4100 50  0000 L CNN
@@ -959,7 +958,7 @@ ADC_VDD
 Text Label 10750 3800 0    60   ~ 0
 ADC_VDD
 $Comp
-L GND #PWR043
+L agg-kicad:GND #PWR043
 U 1 1 59FA57B6
 P 8600 4000
 F 0 "#PWR043" H 8470 4040 50  0001 L CNN
@@ -970,7 +969,7 @@ F 3 "" H 8600 4000 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR046
+L agg-kicad:GND #PWR046
 U 1 1 59FA5B11
 P 9450 4050
 F 0 "#PWR046" H 9320 4090 50  0001 L CNN
@@ -981,7 +980,7 @@ F 3 "" H 9450 4050 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR047
+L agg-kicad:GND #PWR047
 U 1 1 59FA5E25
 P 10300 4050
 F 0 "#PWR047" H 10170 4090 50  0001 L CNN
@@ -992,7 +991,7 @@ F 3 "" H 10300 4050 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L C C21
+L agg-kicad:C C21
 U 1 1 59FA7058
 P 7450 3650
 F 0 "C21" H 7500 3720 50  0000 C CNN
@@ -1004,7 +1003,7 @@ F 4 "1759122" H 0   0   60  0001 C CNN "Farnell"
 	0    1    1    0   
 $EndComp
 $Comp
-L GND #PWR040
+L agg-kicad:GND #PWR040
 U 1 1 59FA705E
 P 7450 3800
 F 0 "#PWR040" H 7320 3840 50  0001 L CNN
@@ -1015,7 +1014,7 @@ F 3 "" H 7450 3800 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L COAX P1
+L agg-kicad:COAX P1
 U 1 1 59FA8088
 P 1300 1450
 F 0 "P1" H 1300 1550 50  0000 C CNN
@@ -1027,7 +1026,7 @@ F 4 "1248952" H 1300 1450 60  0001 C CNN "Farnell"
 	-1   0    0    -1  
 $EndComp
 $Comp
-L ESD_DIODE D1
+L agg-kicad:ESD_DIODE D1
 U 1 1 59FA83A7
 P 1650 1600
 F 0 "D1" H 1600 1700 50  0000 L CNN
@@ -1039,7 +1038,7 @@ F 4 "2368169" H 1600 1300 50  0001 L CNN "Farnell"
 	0    1    1    0   
 $EndComp
 $Comp
-L GND #PWR05
+L agg-kicad:GND #PWR05
 U 1 1 59FA85FE
 P 1450 1750
 F 0 "#PWR05" H 1320 1790 50  0001 L CNN
@@ -1050,7 +1049,7 @@ F 3 "" H 1450 1750 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR06
+L agg-kicad:GND #PWR06
 U 1 1 59FA8912
 P 1650 1750
 F 0 "#PWR06" H 1520 1790 50  0001 L CNN
@@ -1061,7 +1060,7 @@ F 3 "" H 1650 1750 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L R R1
+L agg-kicad:R R1
 U 1 1 59FA903D
 P 1900 1550
 F 0 "R1" H 1950 1600 50  0000 C CNN
@@ -1073,7 +1072,7 @@ F 4 "2447381" H 0   0   60  0001 C CNN "Farnell"
 	0    1    1    0   
 $EndComp
 $Comp
-L GND #PWR09
+L agg-kicad:GND #PWR09
 U 1 1 59FA9162
 P 1900 1750
 F 0 "#PWR09" H 1770 1790 50  0001 L CNN
@@ -1084,7 +1083,7 @@ F 3 "" H 1900 1750 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L R R4
+L agg-kicad:R R4
 U 1 1 59FA94B8
 P 2150 1450
 F 0 "R4" H 2200 1500 50  0000 C CNN
@@ -1098,7 +1097,7 @@ $EndComp
 Text Label 1850 2050 2    60   ~ 0
 ADC_VD
 $Comp
-L R R2
+L agg-kicad:R R2
 U 1 1 59FA9DA3
 P 1900 2200
 F 0 "R2" H 1950 2250 50  0000 C CNN
@@ -1110,7 +1109,7 @@ F 4 "2447230" H 0   0   60  0001 C CNN "Farnell"
 	0    -1   -1   0   
 $EndComp
 $Comp
-L R R3
+L agg-kicad:R R3
 U 1 1 59FAA006
 P 1900 2400
 F 0 "R3" H 1950 2450 50  0000 C CNN
@@ -1122,7 +1121,7 @@ F 4 "2337208" H 0   0   60  0001 C CNN "Farnell"
 	0    -1   -1   0   
 $EndComp
 $Comp
-L GND #PWR010
+L agg-kicad:GND #PWR010
 U 1 1 59FAA07E
 P 1900 2450
 F 0 "#PWR010" H 1770 2490 50  0001 L CNN
@@ -1133,7 +1132,7 @@ F 3 "" H 1900 2450 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L R R8
+L agg-kicad:R R8
 U 1 1 59FAB06E
 P 2250 2250
 F 0 "R8" H 2300 2300 50  0000 C CNN
@@ -1145,7 +1144,7 @@ F 4 "2694888" H 0   0   60  0001 C CNN "Farnell"
 	0    -1   -1   0   
 $EndComp
 $Comp
-L GND #PWR018
+L agg-kicad:GND #PWR018
 U 1 1 59FAB30B
 P 2250 2450
 F 0 "#PWR018" H 2120 2490 50  0001 L CNN
@@ -1156,7 +1155,7 @@ F 3 "" H 2250 2450 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L R R12
+L agg-kicad:R R12
 U 1 1 59FAB755
 P 2800 2000
 F 0 "R12" H 2850 2050 50  0000 C CNN
@@ -1168,7 +1167,7 @@ F 4 "2694886" H 0   0   60  0001 C CNN "Farnell"
 	1    0    0    -1  
 $EndComp
 $Comp
-L R R11
+L agg-kicad:R R11
 U 1 1 59FABC03
 P 2800 850
 F 0 "R11" H 2850 900 50  0000 C CNN
@@ -1180,7 +1179,7 @@ F 4 "2694886" H 0   0   60  0001 C CNN "Farnell"
 	1    0    0    -1  
 $EndComp
 $Comp
-L R R15
+L agg-kicad:R R15
 U 1 1 59FAC3D8
 P 3750 1350
 F 0 "R15" H 3800 1400 50  0000 C CNN
@@ -1192,7 +1191,7 @@ F 4 "2447311" H 0   0   60  0001 C CNN "Farnell"
 	-1   0    0    1   
 $EndComp
 $Comp
-L R R16
+L agg-kicad:R R16
 U 1 1 59FAC4F1
 P 3900 1450
 F 0 "R16" H 3950 1500 50  0000 C CNN
@@ -1204,7 +1203,7 @@ F 4 "2447311" H 0   0   60  0001 C CNN "Farnell"
 	-1   0    0    1   
 $EndComp
 $Comp
-L C C2
+L agg-kicad:C C2
 U 1 1 59FAC9B7
 P 1700 2300
 F 0 "C2" H 1750 2370 50  0000 C CNN
@@ -1216,7 +1215,7 @@ F 4 "1759122" H 0   0   60  0001 C CNN "Farnell"
 	0    1    1    0   
 $EndComp
 $Comp
-L GND #PWR07
+L agg-kicad:GND #PWR07
 U 1 1 59FACD1B
 P 1700 2450
 F 0 "#PWR07" H 1570 2490 50  0001 L CNN
@@ -1227,7 +1226,7 @@ F 3 "" H 1700 2450 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L C C10
+L agg-kicad:C C10
 U 1 1 59FACF13
 P 4100 1350
 F 0 "C10" H 4150 1420 50  0000 C CNN
@@ -1239,7 +1238,7 @@ F 4 "721980" H 0   0   60  0001 C CNN "Farnell"
 	0    1    1    0   
 $EndComp
 $Comp
-L AD8138 IC3
+L agg-kicad:AD8138 IC3
 U 1 1 59FAEE1F
 P 3150 3150
 F 0 "IC3" H 2850 3550 50  0000 L CNN
@@ -1251,7 +1250,7 @@ F 4 "2725700" H 2850 2450 50  0001 L CNN "Farnell"
 	1    0    0    -1  
 $EndComp
 $Comp
-L COAX P2
+L agg-kicad:COAX P2
 U 1 1 59FAEE25
 P 1600 3150
 F 0 "P2" H 1600 3250 50  0000 C CNN
@@ -1263,7 +1262,7 @@ F 4 "1248952" H 1600 3150 60  0001 C CNN "Farnell"
 	-1   0    0    -1  
 $EndComp
 $Comp
-L ESD_DIODE D2
+L agg-kicad:ESD_DIODE D2
 U 1 1 59FAEE2C
 P 1950 3300
 F 0 "D2" H 1900 3400 50  0000 L CNN
@@ -1275,7 +1274,7 @@ F 4 "2368169" H 1900 3000 50  0001 L CNN "Farnell"
 	0    1    1    0   
 $EndComp
 $Comp
-L GND #PWR08
+L agg-kicad:GND #PWR08
 U 1 1 59FAEE32
 P 1750 3450
 F 0 "#PWR08" H 1620 3490 50  0001 L CNN
@@ -1286,7 +1285,7 @@ F 3 "" H 1750 3450 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR011
+L agg-kicad:GND #PWR011
 U 1 1 59FAEE38
 P 1950 3450
 F 0 "#PWR011" H 1820 3490 50  0001 L CNN
@@ -1297,7 +1296,7 @@ F 3 "" H 1950 3450 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L R R5
+L agg-kicad:R R5
 U 1 1 59FAEE3E
 P 2200 3250
 F 0 "R5" H 2250 3300 50  0000 C CNN
@@ -1309,7 +1308,7 @@ F 4 "2447381" H 0   0   60  0001 C CNN "Farnell"
 	0    1    1    0   
 $EndComp
 $Comp
-L GND #PWR014
+L agg-kicad:GND #PWR014
 U 1 1 59FAEE44
 P 2200 3450
 F 0 "#PWR014" H 2070 3490 50  0001 L CNN
@@ -1320,7 +1319,7 @@ F 3 "" H 2200 3450 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L R R9
+L agg-kicad:R R9
 U 1 1 59FAEE4A
 P 2450 3150
 F 0 "R9" H 2500 3200 50  0000 C CNN
@@ -1334,7 +1333,7 @@ $EndComp
 Text Label 2150 3750 2    60   ~ 0
 ADC_VD
 $Comp
-L R R6
+L agg-kicad:R R6
 U 1 1 59FAEE51
 P 2200 3900
 F 0 "R6" H 2250 3950 50  0000 C CNN
@@ -1346,7 +1345,7 @@ F 4 "2447230" H 0   0   60  0001 C CNN "Farnell"
 	0    -1   -1   0   
 $EndComp
 $Comp
-L R R7
+L agg-kicad:R R7
 U 1 1 59FAEE57
 P 2200 4100
 F 0 "R7" H 2250 4150 50  0000 C CNN
@@ -1358,7 +1357,7 @@ F 4 "2337208" H 0   0   60  0001 C CNN "Farnell"
 	0    -1   -1   0   
 $EndComp
 $Comp
-L GND #PWR015
+L agg-kicad:GND #PWR015
 U 1 1 59FAEE5D
 P 2200 4150
 F 0 "#PWR015" H 2070 4190 50  0001 L CNN
@@ -1369,7 +1368,7 @@ F 3 "" H 2200 4150 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L R R10
+L agg-kicad:R R10
 U 1 1 59FAEE75
 P 2550 3950
 F 0 "R10" H 2600 4000 50  0000 C CNN
@@ -1381,7 +1380,7 @@ F 4 "2694888" H 0   0   60  0001 C CNN "Farnell"
 	0    -1   -1   0   
 $EndComp
 $Comp
-L GND #PWR020
+L agg-kicad:GND #PWR020
 U 1 1 59FAEE7D
 P 2550 4150
 F 0 "#PWR020" H 2420 4190 50  0001 L CNN
@@ -1392,7 +1391,7 @@ F 3 "" H 2550 4150 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L R R14
+L agg-kicad:R R14
 U 1 1 59FAEE84
 P 3100 3700
 F 0 "R14" H 3150 3750 50  0000 C CNN
@@ -1404,7 +1403,7 @@ F 4 "2694886" H 0   0   60  0001 C CNN "Farnell"
 	1    0    0    -1  
 $EndComp
 $Comp
-L R R13
+L agg-kicad:R R13
 U 1 1 59FAEE8E
 P 3100 2550
 F 0 "R13" H 3150 2600 50  0000 C CNN
@@ -1416,7 +1415,7 @@ F 4 "2694886" H 0   0   60  0001 C CNN "Farnell"
 	1    0    0    -1  
 $EndComp
 $Comp
-L R R17
+L agg-kicad:R R17
 U 1 1 59FAEE9B
 P 4050 3050
 F 0 "R17" H 4100 3100 50  0000 C CNN
@@ -1428,7 +1427,7 @@ F 4 "2447311" H 0   0   60  0001 C CNN "Farnell"
 	-1   0    0    1   
 $EndComp
 $Comp
-L R R18
+L agg-kicad:R R18
 U 1 1 59FAEEA1
 P 4200 3150
 F 0 "R18" H 4250 3200 50  0000 C CNN
@@ -1440,7 +1439,7 @@ F 4 "2447311" H 0   0   60  0001 C CNN "Farnell"
 	-1   0    0    1   
 $EndComp
 $Comp
-L C C4
+L agg-kicad:C C4
 U 1 1 59FAEEA9
 P 2000 4000
 F 0 "C4" H 2050 4070 50  0000 C CNN
@@ -1452,7 +1451,7 @@ F 4 "1759122" H 0   0   60  0001 C CNN "Farnell"
 	0    1    1    0   
 $EndComp
 $Comp
-L GND #PWR012
+L agg-kicad:GND #PWR012
 U 1 1 59FAEEB0
 P 2000 4150
 F 0 "#PWR012" H 1870 4190 50  0001 L CNN
@@ -1463,7 +1462,7 @@ F 3 "" H 2000 4150 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L C C12
+L agg-kicad:C C12
 U 1 1 59FAEEB7
 P 4400 3050
 F 0 "C12" H 4450 3120 50  0000 C CNN
@@ -1475,7 +1474,7 @@ F 4 "721980" H 0   0   60  0001 C CNN "Farnell"
 	0    1    1    0   
 $EndComp
 $Comp
-L GND #PWR02
+L agg-kicad:GND #PWR02
 U 1 1 59FAFEB2
 P 3100 6850
 F 0 "#PWR02" H 2970 6890 50  0001 L CNN
@@ -1486,7 +1485,7 @@ F 3 "" H 3100 6850 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L 5v #PWR048
+L agg-kicad:5v #PWR048
 U 1 1 59FB00DD
 P 3300 6750
 F 0 "#PWR048" H 3300 6860 50  0001 L CNN
@@ -1497,7 +1496,7 @@ F 3 "" H 3300 6750 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L PWR #FLG01
+L agg-kicad:PWR #FLG01
 U 1 1 59FB038F
 P 3100 6750
 F 0 "#FLG01" H 3100 6910 50  0001 C CNN
@@ -1508,7 +1507,7 @@ F 3 "" H 3100 6750 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L PWR #FLG02
+L agg-kicad:PWR #FLG02
 U 1 1 59FB0642
 P 3300 6850
 F 0 "#FLG02" H 3300 7010 50  0001 C CNN
@@ -1526,7 +1525,7 @@ ADC_VD
 Text Label 2400 1000 0    60   ~ 0
 ADC_VD
 $Comp
-L GND #PWR049
+L agg-kicad:GND #PWR049
 U 1 1 59FB2655
 P 2400 1300
 F 0 "#PWR049" H 2270 1340 50  0001 L CNN
@@ -1537,7 +1536,7 @@ F 3 "" H 2400 1300 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR050
+L agg-kicad:GND #PWR050
 U 1 1 59FB28C3
 P 2700 3000
 F 0 "#PWR050" H 2570 3040 50  0001 L CNN
@@ -1548,7 +1547,7 @@ F 3 "" H 2700 3000 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR051
+L agg-kicad:GND #PWR051
 U 1 1 59FB4DA3
 P 4150 5450
 F 0 "#PWR051" H 4020 5490 50  0001 L CNN
@@ -1559,7 +1558,7 @@ F 3 "" H 4150 5450 60  0001 C CNN
 	0    1    1    0   
 $EndComp
 $Comp
-L ADP124 IC7
+L agg-kicad:ADP124 IC7
 U 1 1 59FA0E7D
 P 6300 1950
 F 0 "IC7" H 6000 2350 50  0000 L CNN
@@ -1571,7 +1570,7 @@ F 4 "2727437" H 6000 1250 50  0001 L CNN "Farnell"
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR030
+L agg-kicad:GND #PWR030
 U 1 1 59FA1EB9
 P 6750 2200
 F 0 "#PWR030" H 6620 2240 50  0001 L CNN
@@ -1582,7 +1581,7 @@ F 3 "" H 6750 2200 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR052
+L agg-kicad:GND #PWR052
 U 1 1 59FA2D86
 P 5700 2100
 F 0 "#PWR052" H 5570 2140 50  0001 L CNN
@@ -1593,7 +1592,7 @@ F 3 "" H 5700 2100 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L C C24
+L agg-kicad:C C24
 U 1 1 59FA444A
 P 7200 1050
 F 0 "C24" H 7250 1120 50  0000 C CNN
@@ -1605,7 +1604,7 @@ F 4 "1759122" H 0   0   60  0001 C CNN "Farnell"
 	0    1    1    0   
 $EndComp
 $Comp
-L GND #PWR055
+L agg-kicad:GND #PWR055
 U 1 1 59FA57A6
 P 7200 1300
 F 0 "#PWR055" H 7070 1340 50  0001 L CNN
@@ -1616,7 +1615,7 @@ F 3 "" H 7200 1300 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L C C25
+L agg-kicad:C C25
 U 1 1 59FA5F7B
 P 7100 1750
 F 0 "C25" H 7150 1820 50  0000 C CNN
@@ -1628,7 +1627,7 @@ F 4 "1759122" H 0   0   60  0001 C CNN "Farnell"
 	0    1    1    0   
 $EndComp
 $Comp
-L GND #PWR056
+L agg-kicad:GND #PWR056
 U 1 1 59FA6220
 P 7100 2000
 F 0 "#PWR056" H 6970 2040 50  0001 L CNN
@@ -1639,7 +1638,7 @@ F 3 "" H 7100 2000 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L C C18
+L agg-kicad:C C18
 U 1 1 59FA6636
 P 3850 800
 F 0 "C18" H 3900 870 50  0000 C CNN
@@ -1653,7 +1652,7 @@ $EndComp
 Text Label 3800 700  2    60   ~ 0
 ADC_VD
 $Comp
-L GND #PWR053
+L agg-kicad:GND #PWR053
 U 1 1 59FA7089
 P 3850 950
 F 0 "#PWR053" H 3720 990 50  0001 L CNN
@@ -1664,7 +1663,7 @@ F 3 "" H 3850 950 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L C C23
+L agg-kicad:C C23
 U 1 1 59FA750C
 P 4150 2500
 F 0 "C23" H 4200 2570 50  0000 C CNN
@@ -1678,7 +1677,7 @@ $EndComp
 Text Label 4100 2400 2    60   ~ 0
 ADC_VD
 $Comp
-L GND #PWR054
+L agg-kicad:GND #PWR054
 U 1 1 59FA7515
 P 4150 2650
 F 0 "#PWR054" H 4020 2690 50  0001 L CNN
@@ -1689,7 +1688,7 @@ F 3 "" H 4150 2650 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L C C26
+L agg-kicad:C C26
 U 1 1 59FA8A0B
 P 7300 1750
 F 0 "C26" H 7350 1820 50  0000 C CNN
@@ -1701,7 +1700,7 @@ F 4 "1759122" H 0   0   60  0001 C CNN "Farnell"
 	0    1    1    0   
 $EndComp
 $Comp
-L GND #PWR057
+L agg-kicad:GND #PWR057
 U 1 1 59FA8CF6
 P 7300 2000
 F 0 "#PWR057" H 7170 2040 50  0001 L CNN
@@ -1712,7 +1711,7 @@ F 3 "" H 7300 2000 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L C C27
+L agg-kicad:C C27
 U 1 1 59FAA4BB
 P 7400 1050
 F 0 "C27" H 7450 1120 50  0000 C CNN
@@ -1724,7 +1723,7 @@ F 4 "1759122" H 0   0   60  0001 C CNN "Farnell"
 	0    1    1    0   
 $EndComp
 $Comp
-L GND #PWR058
+L agg-kicad:GND #PWR058
 U 1 1 59FAA7AD
 P 7400 1300
 F 0 "#PWR058" H 7270 1340 50  0001 L CNN
@@ -1735,7 +1734,7 @@ F 3 "" H 7400 1300 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L C C28
+L agg-kicad:C C28
 U 1 1 59FAAD87
 P 6400 6850
 F 0 "C28" H 6450 6920 50  0000 C CNN
@@ -1747,7 +1746,7 @@ F 4 "1759122" H 0   0   60  0001 C CNN "Farnell"
 	0    1    1    0   
 $EndComp
 $Comp
-L GND #PWR059
+L agg-kicad:GND #PWR059
 U 1 1 59FAB6B6
 P 6400 7000
 F 0 "#PWR059" H 6270 7040 50  0001 L CNN
@@ -1758,7 +1757,7 @@ F 3 "" H 6400 7000 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L TESTPAD TP4
+L agg-kicad:TESTPAD TP4
 U 1 1 59FAD49B
 P 6750 900
 F 0 "TP4" H 6750 950 50  0000 L CNN
@@ -1769,7 +1768,7 @@ F 3 "" H 6750 900 50  0001 C CNN
 	0    -1   -1   0   
 $EndComp
 $Comp
-L TESTPAD TP5
+L agg-kicad:TESTPAD TP5
 U 1 1 59FADA3E
 P 6800 1600
 F 0 "TP5" H 6800 1650 50  0000 L CNN
@@ -2582,7 +2581,7 @@ Wire Wire Line
 	6800 1600 6800 1650
 Connection ~ 6800 1650
 $Comp
-L TESTPAD TP3
+L agg-kicad:TESTPAD TP3
 U 1 1 59FAE3D6
 P 3750 4600
 F 0 "TP3" H 3750 4650 50  0000 L CNN
@@ -2596,7 +2595,7 @@ Wire Wire Line
 	3750 4600 3750 4650
 Connection ~ 3750 4650
 $Comp
-L TESTPAD TP1
+L agg-kicad:TESTPAD TP1
 U 1 1 59FAE9F6
 P 1900 4600
 F 0 "TP1" H 1900 4650 50  0000 L CNN
@@ -2610,7 +2609,7 @@ Wire Wire Line
 	1900 4600 1900 4650
 Connection ~ 1900 4650
 $Comp
-L TESTPAD TP2
+L agg-kicad:TESTPAD TP2
 U 1 1 59FB0272
 P 3350 6800
 F 0 "TP2" H 3350 6850 50  0000 L CNN
@@ -2624,7 +2623,7 @@ Wire Wire Line
 	3350 6800 3300 6800
 Connection ~ 3300 6800
 $Comp
-L CONN_01x01 J6
+L agg-kicad:CONN_01x01 J6
 U 1 1 59FB0B63
 P 2950 6350
 F 0 "J6" H 2900 6450 50  0000 L CNN
@@ -2636,7 +2635,7 @@ F 4 "2308549" H 0   0   60  0001 C CNN "Farnell"
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR060
+L agg-kicad:GND #PWR060
 U 1 1 59FB0C4C
 P 3100 6350
 F 0 "#PWR060" H 2970 6390 50  0001 L CNN

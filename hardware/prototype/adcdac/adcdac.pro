@@ -1,4 +1,4 @@
-update=Wed 01 Nov 2017 14:16:08 GMT
+update=Sat 18 Nov 2017 04:50:46 GMT
 version=1
 last_client=kicad
 [general]
@@ -27,11 +27,6 @@ ModuleOutlineThickness=0.150000000000
 [cvpcb]
 version=1
 NetIExt=net
-[eeschema]
-version=1
-LibDir=
-[eeschema/libraries]
-LibName1=/home/adam/Projects/basebandboard/hardware/agg-kicad/agg-kicad
 [schematic_editor]
 version=1
 PageLayoutDescrFile=
@@ -42,3 +37,6 @@ NetFmtName=
 SpiceAjustPassiveValues=0
 LabSize=60
 ERC_TestSimilarLabels=1
+[eeschema]
+version=1
+LibDir=
