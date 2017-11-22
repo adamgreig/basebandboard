@@ -53,8 +53,19 @@ _dac = [
         IOStandard("3.3-V LVTTL")),
 ]
 
+_adc = [
+    ("adc_a", 0,
+        Subsignal("data", Pins("D5 B6 A6 B7 D6 A7 C6 C8 E6 E7")),
+        Subsignal("clk", Pins("D8")),
+        IOStandard("3.3-V LVTTL")),
+    ("adc_b", 0,
+        Subsignal("data", Pins("A5 A4 B5 B3 B4 A2 A3 B8 C3 A8")),
+        Subsignal("clk", Pins("D3")),
+        IOStandard("3.3-V LVTTL")),
+]
+
 
 class BBBPlatform(de0nano.Platform):
     def __init__(self):
         de0nano.AlteraPlatform.__init__(self, "EP4CE22F17C6",
-                                        de0nano._io + _dac)
+                                        de0nano._io + _dac + _adc)
