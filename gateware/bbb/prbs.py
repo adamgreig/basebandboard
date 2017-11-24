@@ -5,7 +5,8 @@ Copyright 2017 Adam Greig
 """
 
 import pytest
-from migen import Module, Signal, Cat
+import numpy as np
+from migen import Module, Signal, Cat, Mux, If
 from migen.sim import run_simulation
 
 # These are the taps for each PRBS sequence which are not the MSb,
@@ -26,12 +27,73 @@ class PRBS(Module):
         ###
 
         if k not in TAPS.keys():
-            raise ValueError("k={} invalid for PRBSGenerator".format(k))
+            raise ValueError("k={} invalid for PRBS".format(k))
 
         tap = TAPS[k]
-        state = Signal(k, reset=1)
-        self.comb += self.x.eq(state[k-1] ^ state[tap-1])
-        self.sync += Cat(state).eq(Cat(self.x, state))
+        self.state = Signal(k, reset=1)
+        self.comb += self.x.eq(self.state[k-1] ^ self.state[tap-1])
+        self.sync += Cat(self.state).eq(Cat(self.x, self.state))
+
+
+class PRBSErrorDetector(Module):
+    """
+    Compares incoming bit sequences to the PRBS they should have been generated
+    by, and outputs a pulse every time an error is detected.
+    """
+    def __init__(self, k, bit):
+        """
+        `k` is the PRBS length, one of (7, 9, 11, 15, 20, 23, 31).
+        `bit` is the input bit to be tested against the PRBS.
+
+        Outputs:
+        `err`: pulses high for one clock when the incoming bit does not match.
+        Note that two immediately adjacent errors will cause a longer pulse,
+        rather than two separate pulses.
+        """
+        self.err = Signal()
+
+        if k not in TAPS.keys():
+            raise ValueError("k={} invalid for PRBS".format(k))
+
+        # Run the same PRBS as the transmitter, but we can choose whether to
+        # shift in the new feedback bit, or to shift in the received bit
+        # instead, to synchronise state.
+        tap = TAPS[k]
+        self.prbs = Signal(k, reset=1)
+        self.feedback_bit = Signal()
+        self.prbs_in = Signal()
+        self.comb += self.feedback_bit.eq(self.prbs[k-1] ^ self.prbs[tap-1])
+        self.sync += Cat(self.prbs).eq(Cat(self.prbs_in, self.prbs))
+
+        # Track whether we need to reload the PRBS state from the incoming
+        # bits to resynchronise.
+        self.reload = Signal(reset=1)
+
+        # Select the PRBS input as either the feedback or the input bit
+        self.comb += self.prbs_in.eq(Mux(self.reload, bit, self.feedback_bit))
+
+        # Compute current error value and store previous k values of err.
+        self.comb += self.err.eq(bit != self.feedback_bit)
+        self.err_sr = Signal(k, reset=2**k - 1)
+        self.sync += Cat(self.err_sr).eq(Cat(self.err, self.err_sr))
+
+        # Count how many errors occurred in the last k bits
+        logk = int(np.ceil(np.log2(k)))
+        self.err_count = Signal(logk)
+        self.comb += self.err_count.eq(sum(self.err_sr))
+
+        # If the number of errors exceeds k/2, assume we've lost sync and
+        # reload the PRBS.
+        self.reload_ctr = Signal(logk + 1)
+        self.sync += If(
+                self.err_count > k//2,
+                self.reload_ctr.eq(k + k//2),
+                self.err_sr.eq(0)
+            ).Elif(
+                self.reload != 0,
+                self.reload_ctr.eq(self.reload_ctr - 1)
+            )
+        self.comb += self.reload.eq(self.reload_ctr != 0)
 
 
 @pytest.mark.parametrize("k", TAPS.keys())
@@ -54,3 +116,41 @@ def test_prbs(k):
             yield
 
     run_simulation(prbs, tb())
+
+
+@pytest.mark.parametrize("k", TAPS.keys())
+def test_prbs_error_detector(k):
+    source = Signal()
+    prbsdetector = PRBSErrorDetector(k, source)
+    nbits = min((1 << k) - 1, 512)
+    tx_errors = np.random.binomial(1, 0.02, nbits)
+    tx_err = Signal()
+
+    # Ensure no errors at startup to make verification easier
+    tx_errors[:2*k] = 0
+
+    # Give a large burst of errors in the middle to check recovery
+    tx_errors[nbits//2:nbits//2 + 3*k] = 1
+    tx_errors[nbits//2 + 3*k:nbits//2 + 5*k] = 0
+
+    tx_errors = tx_errors.tolist()
+
+    def tb():
+        rx_errors = []
+        lfsr = 1
+        for i in range(nbits):
+            bit = ((lfsr >> (k-1)) ^ (lfsr >> TAPS[k]-1)) & 1
+            lfsr = ((lfsr << 1) | bit) & ((1 << k)-1)
+
+            (yield source.eq(bit ^ tx_errors[i]))
+            (yield tx_err.eq(tx_errors[i]))
+            yield
+            rx_errors.append((yield prbsdetector.err))
+
+        # Check that, outside the initial synchronisation and the
+        # large error burst in the middle (plus some resync time),
+        # all errors are detected correctly.
+        assert tx_errors[k:nbits//2] == rx_errors[k:nbits//2]
+        assert tx_errors[nbits//2+6*k:] == rx_errors[nbits//2+6*k:]
+
+    run_simulation(prbsdetector, tb(), vcd_name="dump.vcd")

@@ -27,7 +27,7 @@ class TX(Module):
         `bit_en`: a 1-bit signal that enables or disables the shaped bits.
         `shape_sel`: a 5-bit signal which selects which pulse shape is used.
         `noise_en`: a 1-bit signal that enables or disables the noise.
-        `noise_var`: a 4-bit signed signal which controls the noise variance.
+        `noise_var`: a 4-bit unsigned signal which controls the noise variance.
 
         Output `x` is the 12-bit signed sum of the shaped data bits (if
         enabled) and the scaled Gaussian noise (if enabled).

@@ -111,7 +111,7 @@ class PRBSShaper(Module):
 
 def test_prbs_shaper():
     import scipy.signal
-    from prbs import PRBS
+    from .prbs import PRBS
     from migen.sim import run_simulation
 
     # Make the PRBS9 generator

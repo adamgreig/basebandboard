@@ -1,7 +1,8 @@
-from migen import Module, Signal, ClockDomain
+from migen import Module, Signal, ClockDomain, ClockDomainsRenamer
 
 from bbb.platform import BBBPlatform, PLL
 from bbb.tx import TX
+from bbb.rx import RX
 from bbb.nco import NCO
 
 
@@ -55,25 +56,32 @@ class Top(Module):
     def __init__(self, platform):
         # Set up clocking.
         self.clk50 = platform.request("clk50")
-        self.sys_pll = PLL(20, "sys", 1, 4)
-        self.submodules += self.sys_pll
-        self.clock_domains.sys = ClockDomain("sys")
-        self.comb += self.sys_pll.clk_in.eq(self.clk50)
-        self.comb += self.sys.clk.eq(self.sys_pll.clk_out)
+
+        self.submodules.tx_pll = PLL(20, "tx", 100, 4)
+        self.clock_domains.tx = ClockDomain("tx")
+        self.comb += self.tx_pll.clk_in.eq(self.clk50)
+        self.comb += self.tx.clk.eq(self.tx_pll.clk_out)
+
+        self.submodules.rx_pll = PLL(20, "rx", 100, 2)
+        self.clock_domains.rx = ClockDomain("rx")
+        self.comb += self.rx_pll.clk_in.eq(self.clk50)
+        self.comb += self.rx.clk.eq(self.rx_pll.clk_out)
 
         # Set up the DAC and ADC peripherals
         self.dac = plat.request("dac")
-        self.comb += self.dac.clk.eq(self.sys.clk)
+        self.comb += self.dac.clk.eq(self.tx.clk)
+        self.adc_b = plat.request("adc_b")
+        self.comb += self.adc_b.clk.eq(self.rx.clk)
 
         # Create a transmitter.
         self.prbs_k = 9
         self.bit_en = Signal()
         self.shape_sel = Signal(5, reset=0)
         self.noise_en = Signal()
-        self.noise_var = Signal((4, True), reset=10)
-        self.tx = TX(self.prbs_k, self.bit_en, self.shape_sel,
-                     self.noise_en, self.noise_var)
-        self.submodules += self.tx
+        self.noise_var = Signal(4, reset=10)
+        self.submodules.tx = ClockDomainsRenamer("tx")(
+            TX(self.prbs_k, self.bit_en, self.shape_sel,
+               self.noise_en, self.noise_var))
 
         # Wire the transmitter up
         leds = [plat.request("user_led", i) for i in range(8)]
@@ -92,15 +100,28 @@ class Top(Module):
             leds[3].eq(self.shape_sel[1]),
         ]
 
-        # Output the bit clock somewhere too
+        # Create a receiver
+        self.sample_delay = Signal(2, reset=2)
+        self.submodules.rx = ClockDomainsRenamer("rx")(
+            RX(self.prbs_k, self.sample_delay, self.adc_b.data))
+
+        # Output the bit clock, PRBS, etc
         gpio1 = plat.request("gpio_1")
-        self.comb += gpio1[0].eq(self.tx.shaper.prbsclk.clk)
+        self.comb += [
+            gpio1[0].eq(self.tx.shaper.prbsclk.clk),
+            gpio1[1].eq(self.tx.shaper.prbs.x),
+            gpio1[2].eq(self.rx.prbsclk.clk),
+            gpio1[3].eq(self.rx.sliced),
+            gpio1[4].eq(self.rx.delay.x),
+            gpio1[5].eq(self.rx.prbsdet.feedback_bit),
+            gpio1[6].eq(self.rx.err),
+        ]
 
 
 if __name__ == "__main__":
     plat = BBBPlatform()
-    # top = Top(plat)
-    top = NCOTest(plat)
+    top = Top(plat)
+    # top = NCOTest(plat)
     plat.build(top)
     prog = plat.create_programmer()
     prog.load_bitstream("build/top.sof")
