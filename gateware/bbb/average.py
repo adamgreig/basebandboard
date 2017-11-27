@@ -19,17 +19,18 @@ class MovingAverage(Module):
     """
     def __init__(self, sample):
         self.width = sample.nbits
-        self.sr = [Signal((self.width, True)) for _ in range(3)]
-        self.sum11 = Signal((self.width+1, True))
-        self.sum12 = Signal((self.width+1, True))
-        self.x = Signal((self.width, True))
+        self.sr = [Signal((self.width + 2, True)) for _ in range(4)]
+        self.sum11 = Signal((self.width+2, True))
+        self.sum12 = Signal((self.width+2, True))
+        self.x = Signal((self.width+2, True))
         self.sync += [
             self.sr[0].eq(sample),
             self.sr[1].eq(self.sr[0]),
             self.sr[2].eq(self.sr[1]),
-            self.sum11.eq(sample + self.sr[0]),
-            self.sum12.eq(self.sr[1] + self.sr[2]),
-            self.x.eq((self.sum11 + self.sum12) >> 2)]
+            self.sr[3].eq(self.sr[2]),
+            self.sum11.eq(self.sr[0] + self.sr[1]),
+            self.sum12.eq(self.sr[2] + self.sr[3]),
+            self.x.eq(self.sum11 + self.sum12)]
 
 
 def test_moving_average():
