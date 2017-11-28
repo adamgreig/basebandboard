@@ -18,11 +18,12 @@ class RX(Module):
         `sample`: the input ADC sample signal, signed.
         """
         # Connect the ADC to the moving-average filter
-        self.submodules.avg = MovingAverage(sample)
+        # self.submodules.avg = MovingAverage(sample)
 
         # Threshold the averages to single bits
         self.sliced = Signal()
-        self.comb += self.sliced.eq(self.avg.x > 0)
+        # self.comb += self.sliced.eq(self.avg.x > 0)
+        self.comb += self.sliced.eq(~sample[-1])
 
         # Feed the averages to the delay line
         self.submodules.delay = BitDelayLine(self.sliced, 4, sample_delay)

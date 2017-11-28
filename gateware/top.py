@@ -129,11 +129,12 @@ class Top(Module):
         gpio1 = plat.request("gpio_1")
         self.comb += [
             gpio1[0].eq(self.tx.shaper.prbsclk.clk),
-            #gpio1[1].eq(self.tx.shaper.prbs.x),
+            # gpio1[1].eq(self.tx.shaper.prbs.x),
             gpio1[1].eq(self.tx.shaper.sr[4]),
             gpio1[2].eq(self.rx.prbsclk.clk),
             gpio1[3].eq(self.rx.sliced),
-            gpio1[4].eq(self.rx.delay.x),
+            gpio1[4].eq(self.rx.prbsdet.bit_in),
+            # gpio1[4].eq(self.rx.delay.x),
             gpio1[5].eq(self.rx.prbsdet.feedback_bit),
             gpio1[6].eq(self.rx.err),
             gpio1[7].eq(self.rx.prbsdet.reload),
@@ -144,8 +145,8 @@ class Top(Module):
             leds[1].eq(self.noise_en),
             leds[2].eq(self.shape_sel[0]),
             leds[3].eq(self.shape_sel[1]),
-            leds[6].eq(~self.rx.prbsdet.reload),
-            leds[7].eq(~self.rx.err),
+            leds[6].eq(self.rx.prbsdet.reload),
+            leds[7].eq(self.rx.err),
             self.sample_delay[0].eq(sw[0]),
             self.sample_delay[1].eq(sw[1]),
         ]
@@ -165,7 +166,7 @@ class Top(Module):
         rxclk = 100e6
         baud = 1e6
         divider = int(rxclk / baud)
-        ram2uart = UARTTxFromMemory(divider, readport, 10, 0, 8191, readtrig)
+        ram2uart = UARTTxFromMemory(divider, readport, 10, 0, 8192, readtrig)
         self.submodules.ram2uart = ClockDomainsRenamer("rx")(ram2uart)
 
         key0 = plat.request("key")

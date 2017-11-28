@@ -62,6 +62,8 @@ class PRBSErrorDetector(Module):
         self.prbs = Signal(k, reset=1)
         self.feedback_bit = Signal()
         self.prbs_in = Signal()
+        self.bit_in = Signal()
+        self.sync += self.bit_in.eq(bit)
         self.comb += self.feedback_bit.eq(self.prbs[k-1] ^ self.prbs[tap-1])
         self.sync += Cat(self.prbs).eq(Cat(self.prbs_in, self.prbs))
 
@@ -70,10 +72,10 @@ class PRBSErrorDetector(Module):
         self.reload = Signal(reset=1)
 
         # Select the PRBS input as either the feedback or the input bit
-        self.comb += self.prbs_in.eq(Mux(self.reload, bit, self.feedback_bit))
+        self.comb += self.prbs_in.eq(Mux(self.reload, self.bit_in, self.feedback_bit))
 
         # Compute current error value and store previous k values of err.
-        self.comb += self.err.eq(bit != self.feedback_bit)
+        self.comb += self.err.eq(self.bit_in != self.feedback_bit)
         self.err_sr = Signal(k, reset=2**k - 1)
         self.sync += Cat(self.err_sr).eq(Cat(self.err, self.err_sr))
 
@@ -142,7 +144,7 @@ def test_prbs_error_detector(k):
             bit = ((lfsr >> (k-1)) ^ (lfsr >> TAPS[k]-1)) & 1
             lfsr = ((lfsr << 1) | bit) & ((1 << k)-1)
 
-            (yield source.eq(bit ^ tx_errors[i]))
+            (yield source.eq(~bit ^ tx_errors[i]))
             (yield tx_err.eq(tx_errors[i]))
             yield
             rx_errors.append((yield prbsdetector.err))

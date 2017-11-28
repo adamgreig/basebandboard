@@ -92,7 +92,7 @@ class UARTTxFromMemory(Module):
         self.submodules.uart = UARTTx(divider, self.uart_data, self.uart_start)
         self.comb += self.tx_out.eq(self.uart.tx_out)
 
-        self.adr = Signal(max=stopadr)
+        self.adr = Signal(max=stopadr+2)
         self.word = Signal(width)
         self.worda = Array(self.word)
         self.bitidx = Signal(max=width+8)
@@ -144,7 +144,7 @@ class UARTTxFromMemory(Module):
             If(
                 self.bitidx + 8 >= width,
                 If(
-                    self.adr == stopadr,
+                    self.adr == stopadr + 1,
                     NextState("IDLE")
                 ).Else(
                     NextState("SETUP_READ")
@@ -248,7 +248,7 @@ def test_uart_tx_from_memory():
         # shift of the string and the start and end addresses given to
         # the UARTTxFromMemory.
         expected_bits = [1]
-        for c in [ord(x) << 4 for x in teststring[2:-2]]:
+        for c in [ord(x) << 4 for x in teststring[2:11]]:
             # Start bit
             expected_bits.append(0)
             # Data, LSbit first, bottom byte
@@ -278,13 +278,13 @@ def test_uart_tx_from_memory_width8():
 
     # Store some string in the memory, shifted left by 4 so each
     # character takes up 12 bits.
-    teststring = "XXTEST1234XX"
-    mem = Memory(12, 12, [ord(x) for x in teststring])
+    teststring = "0123456789ABCDEF"
+    mem = Memory(12, 16, [ord(x) for x in teststring])
     port = mem.get_port()
 
     divider = 10
     trigger = Signal()
-    uartfrommem = UARTTxFromMemory(divider, port, 8, 2, 10, trigger)
+    uartfrommem = UARTTxFromMemory(divider, port, 8, 0, 15, trigger)
 
     uartfrommem.specials += [mem, port]
     txout = []
@@ -302,7 +302,7 @@ def test_uart_tx_from_memory_width8():
 
         # Generate the bits we expect to see
         expected_bits = [1]
-        for c in [ord(x) for x in teststring[2:-2]]:
+        for c in [ord(x) for x in teststring]:
             # Start bit
             expected_bits.append(0)
             # Data, LSbit first, bottom byte
@@ -314,7 +314,7 @@ def test_uart_tx_from_memory_width8():
 
         assert txout == expected_bits[:-1]
 
-    run_simulation(uartfrommem, tb())
+    run_simulation(uartfrommem, tb(), vcd_name="dump.vcd")
 
 
 def test_data_to_mem():
