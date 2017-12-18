@@ -107,8 +107,8 @@ class Top(Module):
             o_wstrb=wstrb, o_wlast=wlast, o_wvalid=wvalid, o_bready=bready,
 
             # Write inputs
-            i_awready = axi3sw.awready, i_wready=axi3sw.wready,
-            i_bvalid = axi3sw.bvalid, i_bid=axi3sw.bid, i_bresp=axi3sw.bresp,
+            i_awready=axi3sw.awready, i_wready=axi3sw.wready,
+            i_bvalid=axi3sw.bvalid, i_bid=axi3sw.bid, i_bresp=axi3sw.bresp,
         )
 
         # We'll stick some debug information on GPI for easy checking
@@ -117,6 +117,11 @@ class Top(Module):
             awid, awaddr[:4], awlen, awsize, awburst, awlock, awcache)))
         self.specials += Instance(
             "cyclonev_hps_interface_mpu_general_purpose", i_gp_in=gpi)
+
+        # And some interrupts?
+        self.specials += Instance(
+            "cyclonev_hps_interface_interrupts",
+            i_irq=self.registers.regfile[1])
 
 
 if __name__ == "__main__":
