@@ -7,6 +7,83 @@ Copyright 2017 Adam Greig
 from migen import Module, Signal, FSM, If, NextState, NextValue
 
 
+class AXI3ReadPort(Module):
+    def __init__(self, id_width, addr_width, data_width):
+        self.id_width = id_width
+        self.addr_width = addr_width
+        self.data_width = data_width
+
+        # Read Address
+        self.arid = Signal(id_width)
+        self.araddr = Signal(addr_width)
+        self.arlen = Signal(4)
+        self.arsize = Signal(3)
+        self.arburst = Signal(2)
+        self.arlock = Signal(2)
+        self.arcache = Signal(4)
+        self.arprot = Signal(3)
+        self.arvalid = Signal()
+        self.arready = Signal()
+
+        # Read Response
+        self.rid = Signal(id_width)
+        self.rdata = Signal(data_width)
+        self.rresp = Signal(2)
+        self.rlast = Signal()
+        self.rvalid = Signal()
+        self.rready = Signal()
+
+    def connect(self, **kwargs):
+        signals = ("arid", "araddr", "arlen", "arsize", "arburst", "arlock",
+                   "arcache", "arprot", "arvalid", "arready", "rid", "rdata",
+                   "rresp", "rlast", "rvalid", "rready")
+        for signal in signals:
+            if signal in kwargs:
+                self.comb += getattr(self, signal).eq(kwargs[signal])
+
+
+class AXI3WritePort:
+    def __init__(self, id_width, addr_width, data_width):
+        self.id_width = id_width
+        self.addr_width = addr_width
+        self.data_width = data_width
+
+        # Write Address
+        self.awid = Signal(id_width)
+        self.awaddr = Signal(addr_width)
+        self.awlen = Signal(4)
+        self.awsize = Signal(3)
+        self.awburst = Signal(2)
+        self.awlock = Signal(2)
+        self.awcache = Signal(4)
+        self.awprot = Signal(3)
+        self.awvalid = Signal()
+        self.awready = Signal()
+
+        # Write Data
+        self.wid = Signal(id_width)
+        self.wdata = Signal(data_width)
+        self.wstrb = Signal(data_width//8)
+        self.wlast = Signal()
+        self.wvalid = Signal()
+        self.wready = Signal()
+
+        # Write Response
+        self.bid = Signal(id_width)
+        self.bresp = Signal(2)
+        self.bvalid = Signal()
+        self.bready = Signal()
+
+    def connect(self, **kwargs):
+        signals = ("awid", "awaddr", "awlen", "awsize", "awburst", "awlock",
+                   "awcache", "awprot", "awvalid", "awready", "wid", "wdata",
+                   "wstrb", "wlast", "wvalid", "wready", "bid", "bresp",
+                   "bvalid", "bready")
+        for signal in signals:
+            if signal in kwargs:
+                self.comb += getattr(self, signal).eq(kwargs[signal])
+
+
 BURST_TYPE_FIXED = 0b00
 BURST_TYPE_INCR = 0b01
 BURST_TYPE_WRAP = 0b10
@@ -30,7 +107,7 @@ class AXI3SlaveReader(Module):
     """
     AXI3 read-only slave.
 
-    Input signals are from the AXI3 master AR and R ports.
+    `read_port` is an AXI3ReadPort. It should be connected to an AXI3 master.
     `regfile` is an Array which is indexed to respond to reads.
 
     Does not support ARLOCK, ARCACHE, or ARPROT at all.
@@ -39,26 +116,13 @@ class AXI3SlaveReader(Module):
     Does support burst reads.
     Responds SLVERR if invalid ARBURST or ARSIZE given, or if the
         read address is beyond 4*len(regfile).
-
-    AXI3 outputs are:
-        `self.arready`, `self.rid`, `self.rdata`, `self.rresp`,
-        `self.rlast`, and `self.rvalid`.
-    Connect them to the AXI3 master.
     """
-    def __init__(self, arid, araddr, arlen, arsize, arburst, arvalid, rready,
-                 regfile):
-
-        # AXI3SlaveReader outputs
-        self.arready = Signal()
-        self.rid = Signal(arid.nbits)
-        self.rdata = Signal(32)
-        self.rresp = Signal(2)
-        self.rlast = Signal()
-        self.rvalid = Signal()
+    def __init__(self, read_port, regfile):
+        port = read_port
 
         # Store the control parameters for the active transaction.
-        self.readid = Signal(arid.nbits)
-        self.readaddr = Signal(araddr.nbits)
+        self.readid = Signal(port.id_width)
+        self.readaddr = Signal(port.addr_width)
         self.burstlen = Signal(4)
         self.burstsize = Signal(3)
         self.bursttype = Signal(2)
@@ -73,21 +137,21 @@ class AXI3SlaveReader(Module):
         # the PREPARE state.
         self.fsm.act(
             "READY",
-            self.arready.eq(1),
-            self.rvalid.eq(0),
+            port.arready.eq(1),
+            port.rvalid.eq(0),
 
             # Capture all input parameters
-            NextValue(self.readid, arid),
-            NextValue(self.readaddr, araddr),
-            NextValue(self.burstlen, arlen),
-            NextValue(self.burstsize, arsize),
-            NextValue(self.bursttype, arburst),
+            NextValue(self.readid, port.arid),
+            NextValue(self.readaddr, port.araddr),
+            NextValue(self.burstlen, port.arlen),
+            NextValue(self.burstsize, port.arsize),
+            NextValue(self.bursttype, port.arburst),
 
             # Initialise beatcount to 0
             NextValue(self.beatcount, 0),
 
             # Begin processing on ARVALID
-            If(arvalid, NextState("PREPARE")),
+            If(port.arvalid, NextState("PREPARE")),
         )
 
         # In PREPARE, we load the required data without yet asserting RVALID,
@@ -95,12 +159,12 @@ class AXI3SlaveReader(Module):
         # address and beat count.
         self.fsm.act(
             "PREPARE",
-            self.arready.eq(0),
-            self.rvalid.eq(0),
+            port.arready.eq(0),
+            port.rvalid.eq(0),
 
             # Output the current RID and RDATA
-            self.rid.eq(self.readid),
-            self.rdata.eq(regfile[self.readaddr >> 2]),
+            port.rid.eq(self.readid),
+            port.rdata.eq(regfile[self.readaddr >> 2]),
 
             # Return an error for burst size not 4 bytes, or WRAP burst type,
             # or an invalid read address.
@@ -109,7 +173,7 @@ class AXI3SlaveReader(Module):
                | (self.readaddr > 4*len(regfile)),
                NextValue(self.response, RESP_SLVERR)).Else(
                    NextValue(self.response, RESP_OKAY)),
-            self.rresp.eq(self.response),
+            port.rresp.eq(self.response),
 
             # Increment the read address if INCR mode is selected.
             If((self.bursttype == BURST_TYPE_INCR) & (self.beatcount != 0),
@@ -119,7 +183,7 @@ class AXI3SlaveReader(Module):
             NextValue(self.beatcount, self.beatcount + 1),
 
             # Output whether this is the final beat of the burst
-            self.rlast.eq(self.beatcount == self.burstlen + 1),
+            port.rlast.eq(self.beatcount == self.burstlen + 1),
             NextState("WAIT"),
         )
 
@@ -128,25 +192,25 @@ class AXI3SlaveReader(Module):
         # burst) or READY (if not).
         self.fsm.act(
             "WAIT",
-            self.arready.eq(0),
-            self.rvalid.eq(1),
+            port.arready.eq(0),
+            port.rvalid.eq(1),
 
             # Continue outputting RID, RDATA, RRESP, RLAST set in PREPARE
-            self.rid.eq(self.readid),
-            self.rdata.eq(regfile[self.readaddr >> 2]),
-            self.rresp.eq(self.response),
-            self.rlast.eq(self.beatcount == self.burstlen + 1),
+            port.rid.eq(self.readid),
+            port.rdata.eq(regfile[self.readaddr >> 2]),
+            port.rresp.eq(self.response),
+            port.rlast.eq(self.beatcount == self.burstlen + 1),
 
             # Wait for RREADY before advancing
-            If(rready,
-                If(self.rlast, NextState("READY")).Else(NextState("PREPARE")))
+            If(port.rready,
+                If(port.rlast, NextState("READY")).Else(NextState("PREPARE")))
         )
 
 
 class AXI3SlaveWriter(Module):
     """AXI3 write-only slave.
 
-    Input signals are from the AXI3 master AW, W, and B ports.
+    `write_port` is an AXI3WritePort. Connect it to an AXI3 master.
     `regfile` is an Array which is indexed to respond to writes.
 
     Does not support AWLOCK, AWCACHE, or AWPROT at all.
@@ -155,27 +219,15 @@ class AXI3SlaveWriter(Module):
     Only supports AWSIZE=0b010, i.e., 32 bit writes.
     Responds SLVERR if invalid AWBURST or AWSIZE given, or if the
         write address is beyond 4*len(regfile).
-
-    AXI3 outputs:
-        `self.awready`, `self.wready`, `self.bid`, `self.bresp`,
-        `self.bvalid`.
-    Connect them to the AXI3 master.
     """
-    def __init__(self, awid, awaddr, awlen, awsize, awburst, awvalid,
-                 wid, wdata, wstrb, wlast, wvalid, bready, regfile):
-
-        # AXI3SlaveWriter outputs
-        self.awready = Signal()
-        self.wready = Signal()
-        self.bvalid = Signal()
-        self.bid = Signal(awid.nbits)
-        self.bresp = Signal(2)
+    def __init__(self, write_port, regfile):
+        port = write_port
 
         # Store the control parameters for the active transactions
-        self.writeid = Signal(awid.nbits)
-        self.writeaddr = Signal(awaddr.nbits)
-        self.writedata = Signal(wdata.nbits)
-        self.writestrobe = Signal(wstrb.nbits)
+        self.writeid = Signal(port.id_width)
+        self.writeaddr = Signal(port.addr_width)
+        self.writedata = Signal(port.data_width)
+        self.writestrobe = Signal(port.data_width//8)
         self.lastwrite = Signal()
         self.burstlen = Signal(4)
         self.burstsize = Signal(3)
@@ -191,38 +243,38 @@ class AXI3SlaveWriter(Module):
         # WAIT state.
         self.fsm.act(
             "READY",
-            self.awready.eq(1),
-            self.wready.eq(0),
-            self.bvalid.eq(0),
-            self.bid.eq(0),
-            self.bresp.eq(0),
+            port.awready.eq(1),
+            port.wready.eq(0),
+            port.bvalid.eq(0),
+            port.bid.eq(0),
+            port.bresp.eq(0),
 
-            NextValue(self.writeid, awid),
-            NextValue(self.writeaddr, awaddr),
-            NextValue(self.burstlen, awlen),
-            NextValue(self.burstsize, awsize),
-            NextValue(self.bursttype, awburst),
+            NextValue(self.writeid, port.awid),
+            NextValue(self.writeaddr, port.awaddr),
+            NextValue(self.burstlen, port.awlen),
+            NextValue(self.burstsize, port.awsize),
+            NextValue(self.bursttype, port.awburst),
 
             NextValue(self.beatcount, 0),
 
-            If(awvalid, NextState("WAIT"))
+            If(port.awvalid, NextState("WAIT"))
         )
 
         # In WAIT we continuously register the data to write until we see
         # WVALID, then transition to STORE to process it.
         self.fsm.act(
             "WAIT",
-            self.awready.eq(0),
-            self.wready.eq(1),
-            self.bvalid.eq(0),
-            self.bid.eq(0),
-            self.bresp.eq(0),
+            port.awready.eq(0),
+            port.wready.eq(1),
+            port.bvalid.eq(0),
+            port.bid.eq(0),
+            port.bresp.eq(0),
 
-            NextValue(self.writedata, wdata),
-            NextValue(self.writestrobe, wstrb),
-            NextValue(self.lastwrite, wlast),
+            NextValue(self.writedata, port.wdata),
+            NextValue(self.writestrobe, port.wstrb),
+            NextValue(self.lastwrite, port.wlast),
 
-            If(wvalid, NextState("STORE"))
+            If(port.wvalid, NextState("STORE"))
         ),
 
         # Save the recently registered incoming data to the register file,
@@ -230,11 +282,11 @@ class AXI3SlaveWriter(Module):
         # on to RESPOND if not.
         self.fsm.act(
             "STORE",
-            self.awready.eq(0),
-            self.wready.eq(1),
-            self.bvalid.eq(0),
-            self.bid.eq(0),
-            self.bresp.eq(0),
+            port.awready.eq(0),
+            port.wready.eq(1),
+            port.bvalid.eq(0),
+            port.bid.eq(0),
+            port.bresp.eq(0),
 
             # Save data
             NextValue(regfile[self.writeaddr >> 2], self.writedata),
@@ -259,11 +311,11 @@ class AXI3SlaveWriter(Module):
         # Return the response for this write
         self.fsm.act(
             "RESPOND",
-            self.awready.eq(0),
-            self.wready.eq(0),
-            self.bvalid.eq(1),
-            self.bresp.eq(self.response),
-            self.bid.eq(self.writeid),
+            port.awready.eq(0),
+            port.wready.eq(0),
+            port.bvalid.eq(1),
+            port.bresp.eq(self.response),
+            port.bid.eq(self.writeid),
 
-            If(bready, NextState("READY"))
+            If(port.bready, NextState("READY"))
         ),
