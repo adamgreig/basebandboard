@@ -28,6 +28,9 @@ class SDRAM(Module):
         dqi = Signal(dqn)
         dqt = Tristate(sdram.dq, dqo, dqoe, dqi)
 
+        # We'll just leave CKE asserted
+        self.comb += sdram.cke.eq(1)
+
         # Controller state machine
         self.submodules.fsm = FSM(reset_state="POWERUP")
         powerup_counter = Signal(max=timings['powerup']+1)
@@ -36,10 +39,15 @@ class SDRAM(Module):
         self.fsm.act(
             "POWERUP",
             # Assert CKE but deassert CS_N for NOP during initialisation.
-            sdram.cke.eq(1),
             sdram.cs_n.eq(1),
             sdram.dm.eq(0xFFFFFFFF),
 
             # Wait for initial powerup
             If(powerup_counter == timings['powerup'], NextState("INIT1"))
         )
+
+        self.fsm.act(
+            "INIT1"
+            # Precharge all banks
+            sdram.cs_n.eq(1),
+
