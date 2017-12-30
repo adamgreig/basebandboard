@@ -128,11 +128,6 @@ def test_sdram():
             yield
         yield
         yield read_port.arvalid.eq(0)
-        #assert (yield read_port.rvalid)
-        #assert (yield read_port.rid == 0x123)
-        #assert (yield read_port.rdata == reg0)
-        #assert (yield read_port.rresp == RESP_OKAY)
-        #assert (yield read_port.rlast == 0)
         yield read_port.rready.eq(1)
         yield
         yield
@@ -144,48 +139,49 @@ def test_sdram():
         yield sdram.dqt.i.eq(0x4321)
         while not (yield read_port.rvalid):
             yield
+        assert (yield read_port.rid == 0x123)
+        assert (yield read_port.rdata == 0x43211234)
+        assert (yield read_port.rresp == RESP_OKAY)
+        assert (yield read_port.rlast == 0)
         yield read_port.rready.eq(0)
         yield
         yield
         yield sdram.dqt.i.eq(0x5678)
-        #assert (yield read_port.rvalid)
-        #assert (yield read_port.rid == 0x123)
-        #assert (yield read_port.rdata == reg1)
-        #assert (yield read_port.rresp == RESP_OKAY)
-        #assert (yield read_port.rlast == 0)
         yield read_port.rready.eq(1)
         yield
         yield sdram.dqt.i.eq(0x8765)
         while not (yield read_port.rvalid):
             yield
+        assert (yield read_port.rid == 0x123)
+        assert (yield read_port.rdata == 0x87655678)
+        assert (yield read_port.rresp == RESP_OKAY)
+        assert (yield read_port.rlast == 0)
         yield read_port.rready.eq(0)
         yield
         yield
         yield sdram.dqt.i.eq(0xABCD)
-        #assert (yield read_port.rvalid)
-        #assert (yield read_port.rid == 0x123)
-        #assert (yield read_port.rdata == reg2)
-        #assert (yield read_port.rresp == 0b00)
-        #assert (yield read_port.rlast == 0)
         yield read_port.rready.eq(1)
         yield
         yield sdram.dqt.i.eq(0xDCBA)
         while not (yield read_port.rvalid):
             yield
+        assert (yield read_port.rid == 0x123)
+        assert (yield read_port.rdata == 0xDCBAABCD)
+        assert (yield read_port.rresp == RESP_OKAY)
+        assert (yield read_port.rlast == 0)
         yield read_port.rready.eq(0)
         yield
         yield
         yield sdram.dqt.i.eq(0xEF01)
-        #assert (yield read_port.rvalid)
-        #assert (yield read_port.rid == 0x123)
-        #assert (yield read_port.rdata == reg3)
-        #assert (yield read_port.rresp == 0b00)
-        #assert (yield read_port.rlast == 1)
         yield read_port.rready.eq(1)
         yield
         yield sdram.dqt.i.eq(0x10FE)
         while not (yield read_port.rvalid):
             yield
+        assert (yield read_port.rid == 0x123)
+        assert (yield read_port.rdata == 0x10FEEF01)
+        assert (yield read_port.rresp == RESP_OKAY)
+        assert (yield read_port.rlast == 1)
         yield read_port.rready.eq(0)
         yield
         yield
