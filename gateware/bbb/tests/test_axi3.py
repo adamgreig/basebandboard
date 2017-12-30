@@ -1,7 +1,6 @@
 from ..axi3 import AXI3ReadPort, AXI3WritePort
 from ..axi3 import AXI3SlaveReader, AXI3SlaveWriter
-from ..axi3 import BURST_TYPE_INCR, BURST_SIZE_4, RESP_OKAY
-from ..axi3 import RESP_SLVERR
+from ..axi3 import BURST_TYPE_INCR, BURST_SIZE_4, RESP_OKAY, RESP_SLVERR
 from migen import Array, Signal
 from migen.sim import run_simulation
 

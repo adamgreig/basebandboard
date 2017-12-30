@@ -296,7 +296,8 @@ class AXI3SlaveWriter(Module):
             If((self.burstsize != BURST_SIZE_4)
                | (self.bursttype == BURST_TYPE_WRAP)
                | (self.writeaddr >= 4*len(regfile)),
-               NextValue(self.response, RESP_SLVERR)),
+               NextValue(self.response, RESP_SLVERR)).Else(
+                   NextValue(self.response, RESP_OKAY)),
 
             # Increment write address if required
             If(self.bursttype == BURST_TYPE_INCR,
