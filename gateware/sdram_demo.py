@@ -63,7 +63,7 @@ class Top(Module):
 
         # SDRAM controller
         timings = {
-            "powerup": 150*20,
+            "powerup": 150*200,
             "t_cac": 2,
             "t_rcd": 3,
             "t_rc": 10,
@@ -71,7 +71,6 @@ class Top(Module):
             "t_rp": 3,
             "t_mrd": 3,
             "t_ref": 750,
-            #"t_ref": 80,
         }
         axirp = AXI3ReadPort(1, 24, 32)
         axiwp = AXI3WritePort(1, 24, 32)
@@ -100,7 +99,6 @@ class Top(Module):
             bram2uarttrig.eq(0),
 
             If(fsm_trig, NextState("ADC2BRAM"))
-            #NextState("ADC2BRAM")
         )
         self.fsm.act(
             "ADC2BRAM",
@@ -172,8 +170,7 @@ class Top(Module):
             sdram2bramtrig.eq(0),
             bram2uarttrig.eq(0),
 
-            If(ram2uart.ready, NextState("IDLE"))
-            #If(ram2uart.ready, NextState("ADC2BRAM"))
+            If(ram2uart.ready & (fsm_trig == 0), NextState("IDLE"))
         )
 
         # Wire up the keys and LEDs and UART
