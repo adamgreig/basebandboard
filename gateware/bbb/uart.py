@@ -114,6 +114,7 @@ class UARTTxFromMemory(Module):
         )
         self.fsm.act(
             "STORE_READ",
+            #NextValue(self.word, (port.dat_r & 0xFFFFFF) | (self.adr << 24)),
             NextValue(self.word, port.dat_r),
             NextValue(self.adr, self.adr + 1),
             NextValue(self.bitidx, 0),
@@ -164,6 +165,7 @@ class DataToMem(Module):
         `count`: how many samples to save each trigger
         `trigger`: saving to memory starts on trigger
         """
+        self.ready = Signal()
         self.ctr = Signal(max=count)
         self.comb += port.adr.eq(self.ctr)
         self.comb += port.dat_w.eq(data)
@@ -179,6 +181,7 @@ class DataToMem(Module):
             NextValue(self.ctr, self.ctr + 1),
             If(self.ctr + 1 == count, NextState("IDLE")),
         )
+        self.comb += self.ready.eq(self.fsm.ongoing("IDLE"))
 
 
 def test_uart_tx():

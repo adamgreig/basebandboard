@@ -91,6 +91,11 @@ class SDRAM(Module):
             "POWERUP",
             # NOP during initialisation.
             sdram.cs_n.eq(1),
+            sdram.dm.eq(0xF),
+            self.dqt.oe.eq(0),
+            sdram.ras_n.eq(SDRAM_COMMANDS["NOP"][0]),
+            sdram.cas_n.eq(SDRAM_COMMANDS["NOP"][1]),
+            sdram.we_n.eq(SDRAM_COMMANDS["NOP"][2]),
 
             # Wait for 200µs initial powerup
             If(counter == timings['powerup'],
@@ -108,7 +113,8 @@ class SDRAM(Module):
             sdram.cas_n.eq(SDRAM_COMMANDS["PRE"][1]),
             sdram.we_n.eq(SDRAM_COMMANDS["PRE"][2]),
             sdram.a[10].eq(1),
-            sdram.dm.eq(0xFF),
+            sdram.dm.eq(0xF),
+            self.dqt.oe.eq(0),
             NextState("INIT_PRECHARGE_WAIT"),
         )
 
@@ -118,6 +124,8 @@ class SDRAM(Module):
             sdram.ras_n.eq(SDRAM_COMMANDS["NOP"][0]),
             sdram.cas_n.eq(SDRAM_COMMANDS["NOP"][1]),
             sdram.we_n.eq(SDRAM_COMMANDS["NOP"][2]),
+            sdram.dm.eq(0xF),
+            self.dqt.oe.eq(0),
 
             If(counter == timings['t_rp'],
                NextValue(counter, 0),
@@ -133,6 +141,8 @@ class SDRAM(Module):
             sdram.ras_n.eq(SDRAM_COMMANDS["REF"][0]),
             sdram.cas_n.eq(SDRAM_COMMANDS["REF"][1]),
             sdram.we_n.eq(SDRAM_COMMANDS["REF"][2]),
+            sdram.dm.eq(0xF),
+            self.dqt.oe.eq(0),
             NextValue(init_refresh_counter, init_refresh_counter + 1),
             NextState("INIT_AUTOREFRESH_WAIT"),
         )
@@ -143,6 +153,8 @@ class SDRAM(Module):
             sdram.ras_n.eq(SDRAM_COMMANDS["NOP"][0]),
             sdram.cas_n.eq(SDRAM_COMMANDS["NOP"][1]),
             sdram.we_n.eq(SDRAM_COMMANDS["NOP"][2]),
+            sdram.dm.eq(0xF),
+            self.dqt.oe.eq(0),
 
             If(counter == timings['t_rc'],
                NextValue(counter, 0),
@@ -158,6 +170,8 @@ class SDRAM(Module):
             sdram.ras_n.eq(SDRAM_COMMANDS["MRS"][0]),
             sdram.cas_n.eq(SDRAM_COMMANDS["MRS"][1]),
             sdram.we_n.eq(SDRAM_COMMANDS["MRS"][2]),
+            sdram.dm.eq(0xF),
+            self.dqt.oe.eq(0),
 
             # Write Burst Mode: Programmed Burst Length
             sdram.a[9].eq(0),
@@ -182,6 +196,8 @@ class SDRAM(Module):
             sdram.ras_n.eq(SDRAM_COMMANDS["NOP"][0]),
             sdram.cas_n.eq(SDRAM_COMMANDS["NOP"][1]),
             sdram.we_n.eq(SDRAM_COMMANDS["NOP"][2]),
+            sdram.dm.eq(0xF),
+            self.dqt.oe.eq(0),
 
             If(counter == timings['t_mrd'],
                NextValue(counter, 0),
@@ -196,6 +212,8 @@ class SDRAM(Module):
             sdram.ras_n.eq(SDRAM_COMMANDS["NOP"][0]),
             sdram.cas_n.eq(SDRAM_COMMANDS["NOP"][1]),
             sdram.we_n.eq(SDRAM_COMMANDS["NOP"][2]),
+            sdram.dm.eq(0xF),
+            self.dqt.oe.eq(0),
 
             # Set AXI3 write port outputs.
             write_port.awready.eq(0),
@@ -210,7 +228,7 @@ class SDRAM(Module):
             NextValue(self.wburstsize, write_port.awsize),
             NextValue(self.wbursttype, write_port.awburst),
             NextValue(self.readid, read_port.arid),
-            NextValue(self.writeaddr, read_port.araddr),
+            NextValue(self.readaddr, read_port.araddr),
             NextValue(self.rburstlen, read_port.arlen),
             NextValue(self.rburstsize, read_port.arsize),
             NextValue(self.rbursttype, read_port.arburst),
@@ -218,8 +236,6 @@ class SDRAM(Module):
 
             NextValue(counter, 0),
             NextValue(self.beatcount, 0),
-
-            self.dqt.oe.eq(0),
 
             If(auto_refresh_pending,
                NextState("AUTOREFRESH")
@@ -247,6 +263,8 @@ class SDRAM(Module):
             sdram.ras_n.eq(SDRAM_COMMANDS["ACT"][0]),
             sdram.cas_n.eq(SDRAM_COMMANDS["ACT"][1]),
             sdram.we_n.eq(SDRAM_COMMANDS["ACT"][2]),
+            sdram.dm.eq(0xF),
+            self.dqt.oe.eq(0),
 
             NextValue(counter, 0),
             NextState("WPREPARE_WAIT")
@@ -263,6 +281,8 @@ class SDRAM(Module):
             sdram.ras_n.eq(SDRAM_COMMANDS["NOP"][0]),
             sdram.cas_n.eq(SDRAM_COMMANDS["NOP"][1]),
             sdram.we_n.eq(SDRAM_COMMANDS["NOP"][2]),
+            sdram.dm.eq(0xF),
+            self.dqt.oe.eq(0),
 
             If((self.wburstsize != BURST_SIZE_4)
                | (self.wbursttype == BURST_TYPE_WRAP),
@@ -286,6 +306,8 @@ class SDRAM(Module):
             sdram.ras_n.eq(SDRAM_COMMANDS["NOP"][0]),
             sdram.cas_n.eq(SDRAM_COMMANDS["NOP"][1]),
             sdram.we_n.eq(SDRAM_COMMANDS["NOP"][2]),
+            sdram.dm.eq(0xF),
+            self.dqt.oe.eq(0),
 
             # Set AXI3 write outputs.
             # In WWAIT we continuously register the data to write until we see
@@ -320,6 +342,7 @@ class SDRAM(Module):
             sdram.ras_n.eq(SDRAM_COMMANDS["WRITE"][0]),
             sdram.cas_n.eq(SDRAM_COMMANDS["WRITE"][1]),
             sdram.we_n.eq(SDRAM_COMMANDS["WRITE"][2]),
+            sdram.dm.eq(0x0),
             self.dqt.o.eq(self.writedata[0:16]),
             self.dqt.oe.eq(1),
 
@@ -335,10 +358,11 @@ class SDRAM(Module):
             write_port.bvalid.eq(0),
 
             # NOP the SDRAM
-            sdram.cs_n.eq(0),
+            sdram.cs_n.eq(1),
             sdram.ras_n.eq(SDRAM_COMMANDS["NOP"][0]),
             sdram.cas_n.eq(SDRAM_COMMANDS["NOP"][1]),
             sdram.we_n.eq(SDRAM_COMMANDS["NOP"][2]),
+            sdram.dm.eq(0x0),
 
             # Set second data to write
             self.dqt.o.eq(self.writedata[16:32]),
@@ -361,6 +385,14 @@ class SDRAM(Module):
             write_port.bresp.eq(self.response),
             write_port.bid.eq(self.writeid),
 
+            # NOP the SDRAM
+            sdram.cs_n.eq(1),
+            sdram.ras_n.eq(SDRAM_COMMANDS["NOP"][0]),
+            sdram.cas_n.eq(SDRAM_COMMANDS["NOP"][1]),
+            sdram.we_n.eq(SDRAM_COMMANDS["NOP"][2]),
+            sdram.dm.eq(0xF),
+            self.dqt.oe.eq(0),
+
             NextValue(counter, 0),
             If(write_port.bready, NextState("WRESPOND_WAIT"))
         )
@@ -372,6 +404,8 @@ class SDRAM(Module):
             sdram.ras_n.eq(SDRAM_COMMANDS["NOP"][0]),
             sdram.cas_n.eq(SDRAM_COMMANDS["NOP"][1]),
             sdram.we_n.eq(SDRAM_COMMANDS["NOP"][2]),
+            sdram.dm.eq(0xF),
+            self.dqt.oe.eq(0),
 
             If(counter == timings['t_rp'],
                NextValue(counter, 0),
@@ -388,12 +422,14 @@ class SDRAM(Module):
             read_port.rvalid.eq(0),
 
             # Activate relevant row for this address
-            sdram.ba.eq(self.writeaddr[22:24]),
-            sdram.a.eq(self.writeaddr[9:22]),
+            sdram.ba.eq(self.readaddr[22:24]),
+            sdram.a.eq(self.readaddr[9:22]),
             sdram.cs_n.eq(0),
             sdram.ras_n.eq(SDRAM_COMMANDS["ACT"][0]),
             sdram.cas_n.eq(SDRAM_COMMANDS["ACT"][1]),
             sdram.we_n.eq(SDRAM_COMMANDS["ACT"][2]),
+            sdram.dm.eq(0xF),
+            self.dqt.oe.eq(0),
 
             If((self.rburstsize != BURST_SIZE_4)
                | (self.rbursttype == BURST_TYPE_WRAP),
@@ -411,6 +447,8 @@ class SDRAM(Module):
             sdram.ras_n.eq(SDRAM_COMMANDS["NOP"][0]),
             sdram.cas_n.eq(SDRAM_COMMANDS["NOP"][1]),
             sdram.we_n.eq(SDRAM_COMMANDS["NOP"][2]),
+            sdram.dm.eq(0xF),
+            self.dqt.oe.eq(0),
 
             read_port.arready.eq(0),
             read_port.rvalid.eq(0),
@@ -429,8 +467,8 @@ class SDRAM(Module):
 
             # Send the SDRAM READ command,
             # with AUTO PRECHARGE to close this row if rlast is set
-            sdram.ba.eq(self.writeaddr[22:24]),
-            sdram.a[0:9].eq(self.writeaddr[0:9]),
+            sdram.ba.eq(self.readaddr[22:24]),
+            sdram.a[0:9].eq(self.readaddr[0:9]),
             sdram.a[9].eq(0),
             If(self.beatcount == self.rburstlen,
                sdram.a[10].eq(1)).Else(sdram.a[10].eq(0)),
@@ -438,9 +476,11 @@ class SDRAM(Module):
             sdram.ras_n.eq(SDRAM_COMMANDS["READ"][0]),
             sdram.cas_n.eq(SDRAM_COMMANDS["READ"][1]),
             sdram.we_n.eq(SDRAM_COMMANDS["READ"][2]),
+            sdram.dm.eq(0x0),
             self.dqt.oe.eq(0),
 
-            NextState("RREAD_WAIT"),
+            #NextState("RREAD_WAIT"),
+            NextState("RLOADL"),
         )
 
         self.fsm.act(
@@ -453,6 +493,7 @@ class SDRAM(Module):
             sdram.ras_n.eq(SDRAM_COMMANDS["NOP"][0]),
             sdram.cas_n.eq(SDRAM_COMMANDS["NOP"][1]),
             sdram.we_n.eq(SDRAM_COMMANDS["NOP"][2]),
+            sdram.dm.eq(0x0),
             self.dqt.oe.eq(0),
 
             NextState("RLOADL"),
@@ -468,6 +509,7 @@ class SDRAM(Module):
             sdram.ras_n.eq(SDRAM_COMMANDS["NOP"][0]),
             sdram.cas_n.eq(SDRAM_COMMANDS["NOP"][1]),
             sdram.we_n.eq(SDRAM_COMMANDS["NOP"][2]),
+            sdram.dm.eq(0x0),
             self.dqt.oe.eq(0),
 
             NextValue(self.readdata[0:16], self.dqt.i),
@@ -485,6 +527,7 @@ class SDRAM(Module):
             sdram.ras_n.eq(SDRAM_COMMANDS["NOP"][0]),
             sdram.cas_n.eq(SDRAM_COMMANDS["NOP"][1]),
             sdram.we_n.eq(SDRAM_COMMANDS["NOP"][2]),
+            sdram.dm.eq(0x0),
             self.dqt.oe.eq(0),
 
             NextValue(self.readdata[16:32], self.dqt.i),
@@ -507,10 +550,11 @@ class SDRAM(Module):
             sdram.ras_n.eq(SDRAM_COMMANDS["NOP"][0]),
             sdram.cas_n.eq(SDRAM_COMMANDS["NOP"][1]),
             sdram.we_n.eq(SDRAM_COMMANDS["NOP"][2]),
+            sdram.dm.eq(0xF),
             self.dqt.oe.eq(0),
 
             If(self.rbursttype == BURST_TYPE_INCR,
-               NextValue(self.writeaddr, self.writeaddr + 4)),
+               NextValue(self.readaddr, self.readaddr + 4)),
             NextValue(self.beatcount, self.beatcount + 1),
 
             NextState("RRESPOND_WAIT"),
@@ -529,6 +573,7 @@ class SDRAM(Module):
             sdram.ras_n.eq(SDRAM_COMMANDS["NOP"][0]),
             sdram.cas_n.eq(SDRAM_COMMANDS["NOP"][1]),
             sdram.we_n.eq(SDRAM_COMMANDS["NOP"][2]),
+            sdram.dm.eq(0xF),
             self.dqt.oe.eq(0),
 
             If(read_port.rready,
@@ -543,6 +588,8 @@ class SDRAM(Module):
             sdram.ras_n.eq(SDRAM_COMMANDS["REF"][0]),
             sdram.cas_n.eq(SDRAM_COMMANDS["REF"][1]),
             sdram.we_n.eq(SDRAM_COMMANDS["REF"][2]),
+            sdram.dm.eq(0xF),
+            self.dqt.oe.eq(0),
             NextValue(auto_refresh_pending, 0),
             NextState("AUTOREFRESH_WAIT"),
         )
@@ -553,6 +600,8 @@ class SDRAM(Module):
             sdram.ras_n.eq(SDRAM_COMMANDS["NOP"][0]),
             sdram.cas_n.eq(SDRAM_COMMANDS["NOP"][1]),
             sdram.we_n.eq(SDRAM_COMMANDS["NOP"][2]),
+            sdram.dm.eq(0xF),
+            self.dqt.oe.eq(0),
 
             If(counter == timings['t_rc'],
                NextValue(counter, 0),

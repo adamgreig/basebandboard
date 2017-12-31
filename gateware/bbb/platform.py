@@ -9,7 +9,8 @@ from migen.build.platforms import de0nano
 
 class PLL(Module):
     """Helper for instantiating onboard PLLs"""
-    def __init__(self, period_in, name, divide_by, multiply_by):
+    def __init__(self, period_in, name, divide_by, multiply_by,
+                 operation_mode="NORMAL", phase_shift=0):
         self.clk_in = Signal()
         self.clk_out = Signal()
         self.specials += Instance("ALTPLL",
@@ -17,14 +18,14 @@ class PLL(Module):
                                   p_clk0_divide_by=divide_by,
                                   p_clk0_duty_cycle=50,
                                   p_clk0_multiply_by=multiply_by,
-                                  p_clk0_phase_shift="0",
+                                  p_clk0_phase_shift=str(phase_shift),
                                   p_compensate_clock="CLK0",
                                   p_inclk0_input_frequency=int(period_in*1000),
                                   p_intended_device_family="Cyclone IV E",
                                   p_lpm_hint="CBX_MODULE_PREFIX={}_pll"
                                              .format(name),
                                   p_lpm_type="altpll",
-                                  p_operation_mode="NORMAL",
+                                  p_operation_mode=operation_mode,
                                   i_inclk=self.clk_in,
                                   o_clk=self.clk_out,
                                   i_areset=0,
