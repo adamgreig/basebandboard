@@ -66,7 +66,29 @@ _adc = [
 ]
 
 
+_lcd = [
+    ("lcd", 0,
+        Subsignal("data", Pins("J14 J16 K15 M10 L13 L14 N14 N15 P14 R14 N16",
+                               "P15 P16 R16 L15 L16 K16 N9 N11 N12 P9 P11 R10",
+                               "T10")),
+        Subsignal("pclk", Pins("R11")),
+        Subsignal("hsync", Pins("T11")),
+        Subsignal("vsync", Pins("R13")),
+        Subsignal("de", Pins("T12")),
+        Subsignal("disp", Pins("R12")),
+        IOStandard("3.3-V LVTTL")),
+    ("lcd_backlight", 0, Pins("J13"), IOStandard("3.3-V LVTTL")),
+    ("touchscreen", 0,
+        Subsignal("mosi", Pins("T15")),
+        Subsignal("miso", Pins("R9")),
+        Subsignal("cs", Pins("T13")),
+        Subsignal("sclk", Pins("F13")),
+        Subsignal("int", Pins("T14")),
+        IOStandard("3.3-V LVTTL")),
+]
+
+
 class BBBPlatform(de0nano.Platform):
     def __init__(self):
         de0nano.AlteraPlatform.__init__(self, "EP4CE22F17C6",
-                                        de0nano._io + _dac + _adc)
+                                        de0nano._io + _dac + _adc + _lcd)
