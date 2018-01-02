@@ -1,8 +1,9 @@
-from migen import Module, Signal, ClockDomain
+from migen import Module, Signal, ClockDomain, Memory, Cat
 from bbb.platform import BBBPlatform, PLL
-from bbb.rgb_lcd import RGBLCD, LCDPatternGenerator
+from bbb.rgb_lcd import RGBLCD, LCDPatternGenerator, AR1021TouchController
 from bbb.sdram import SDRAM
 from bbb.axi3 import AXI3ReadPort, AXI3WritePort
+from bbb.uart import UARTTxFromMemory, DataToMem
 
 
 class Top(Module):
@@ -15,6 +16,7 @@ class Top(Module):
         self.clock_domains.sys = ClockDomain("sys")
         self.comb += sys_pll.clk_in.eq(self.clk50)
         self.comb += self.sys.clk.eq(sys_pll.clk_out)
+
         sdram_pll = PLL(20, "sdram", 1, 2, "ZERO_DELAY_BUFFER", -3000)
         self.submodules += sdram_pll
         self.clock_domains.sys_ps = ClockDomain("sys_ps")
@@ -33,8 +35,8 @@ class Top(Module):
             "t_mrd": 3,
             "t_ref": 750,
         }
-        axirp = AXI3ReadPort(1, 24, 32)
-        axiwp = AXI3WritePort(1, 24, 32)
+        axirp = AXI3ReadPort(1, 25, 32)
+        axiwp = AXI3WritePort(1, 25, 32)
         sdram = plat.request("sdram")
         sdramctl = SDRAM(axirp, axiwp, sdram, timings)
         self.submodules += sdramctl
@@ -45,11 +47,43 @@ class Top(Module):
         backlight = platform.request("lcd_backlight")
         self.comb += backlight.eq(1)
         self.comb += display.disp.eq(1)
-        startaddr = Signal(24)
+        startaddr = Signal(25)
         self.submodules.lcd = RGBLCD(display, axirp, startaddr)
 
+        # Touchscreen controller
+        touchscreen = platform.request("touchscreen")
+        self.submodules.touch = AR1021TouchController(touchscreen)
+        led = platform.request("user_led")
+        self.comb += led.eq(~touchscreen.cs)
+
         # LCD test pattern generator
-        self.submodules.patgen = LCDPatternGenerator(axiwp, startaddr)
+        self.submodules.patgen = LCDPatternGenerator(axiwp, startaddr,
+                                                     self.touch)
+
+        # Make a BRAM to fill with touchscreen data and dump over UART
+        uart_ram = Memory(32, 4)
+        uartreadport = uart_ram.get_port(mode=1)
+        uartwriteport = uart_ram.get_port(write_capable=True, mode=0)
+        self.specials += [uart_ram, uartreadport, uartwriteport]
+
+        touch_x = Signal(16)
+        self.comb += touch_x.eq(self.touch.x)
+        touch_y = Signal(16)
+        self.comb += touch_y.eq(self.touch.y)
+        touchdata = Signal(32)
+        self.comb += touchdata.eq(Cat(touch_x, touch_y))
+
+        storetrig = Signal()
+        self.sync += storetrig.eq(self.touch.newdata)
+        touch2ram = DataToMem(touchdata, uartwriteport, 2, storetrig)
+        self.submodules += touch2ram
+
+        uarttrig = Signal()
+        self.sync += uarttrig.eq(storetrig)
+        ram2uart = UARTTxFromMemory(100, uartreadport, 32, 0, 2, uarttrig)
+        self.submodules += ram2uart
+        uart = platform.request("uart")
+        self.comb += uart.eq(ram2uart.tx_out)
 
 
 if __name__ == "__main__":

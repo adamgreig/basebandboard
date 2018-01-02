@@ -6,12 +6,12 @@ from migen.sim import run_simulation
 
 
 def test_sdram():
-    read_port = AXI3ReadPort(id_width=12, addr_width=24, data_width=32)
-    write_port = AXI3WritePort(id_width=12, addr_width=24, data_width=32)
+    read_port = AXI3ReadPort(id_width=12, addr_width=25, data_width=32)
+    write_port = AXI3WritePort(id_width=12, addr_width=25, data_width=32)
 
     class FakeRAM(Module):
         def __init__(self):
-            self.a = Signal(24)
+            self.a = Signal(13)
             self.ba = Signal(2)
             self.cs_n = Signal()
             self.cke = Signal()
@@ -133,7 +133,6 @@ def test_sdram():
         yield
         yield
         yield
-        yield
         yield sdram.dqt.i.eq(0x1234)
         yield
         yield sdram.dqt.i.eq(0x4321)
@@ -144,7 +143,6 @@ def test_sdram():
         assert (yield read_port.rresp == RESP_OKAY)
         assert (yield read_port.rlast == 0)
         yield read_port.rready.eq(0)
-        yield
         yield
         yield sdram.dqt.i.eq(0x5678)
         yield read_port.rready.eq(1)
@@ -158,7 +156,6 @@ def test_sdram():
         assert (yield read_port.rlast == 0)
         yield read_port.rready.eq(0)
         yield
-        yield
         yield sdram.dqt.i.eq(0xABCD)
         yield read_port.rready.eq(1)
         yield
@@ -170,7 +167,6 @@ def test_sdram():
         assert (yield read_port.rresp == RESP_OKAY)
         assert (yield read_port.rlast == 0)
         yield read_port.rready.eq(0)
-        yield
         yield
         yield sdram.dqt.i.eq(0xEF01)
         yield read_port.rready.eq(1)

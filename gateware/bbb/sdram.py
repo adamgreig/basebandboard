@@ -48,12 +48,14 @@ class SDRAM(Module):
         "t_ref": clocks between each auto-refresh command, eg 750
     The SDRAM clock should be established externally to an appropriate phase
     advance over the clock for this module, at the same frequency.
+
+    You must connect SDRAM.dqt.get_tristate(sdram.dq) to self.specials
+    in the higher level module.
     """
     def __init__(self, read_port, write_port, sdram, timings):
         # Set up the DQ tristate signal
         dqn = len(sdram.dq)
         self.dqt = TSTriple(dqn)
-        #self.specials += self.dqt.get_tristate(sdram.dq)
 
         # We'll just leave CKE asserted
         self.comb += sdram.cke.eq(1)
@@ -240,11 +242,11 @@ class SDRAM(Module):
             If(auto_refresh_pending,
                NextState("AUTOREFRESH")
                ).Elif(
-               write_port.awvalid,
-               NextState("WPREPARE")
-               ).Elif(
                read_port.arvalid,
                NextState("RPREPARE")
+               ).Elif(
+               write_port.awvalid,
+               NextState("WPREPARE")
                ).Else(NextState("IDLE")),
         )
 
@@ -257,8 +259,8 @@ class SDRAM(Module):
             write_port.bvalid.eq(0),
 
             # Activate the relevant row for this address
-            sdram.ba.eq(self.writeaddr[22:24]),
-            sdram.a.eq(self.writeaddr[9:22]),
+            sdram.ba.eq(self.writeaddr[23:25]),
+            sdram.a.eq(self.writeaddr[10:23]),
             sdram.cs_n.eq(0),
             sdram.ras_n.eq(SDRAM_COMMANDS["ACT"][0]),
             sdram.cas_n.eq(SDRAM_COMMANDS["ACT"][1]),
@@ -334,8 +336,8 @@ class SDRAM(Module):
 
             # Send the SDRAM WRITE command,
             # with AUTO PRECHARGE to close this row if self.lastwrite is set
-            sdram.ba.eq(self.writeaddr[22:24]),
-            sdram.a[0:9].eq(self.writeaddr[0:9]),
+            sdram.ba.eq(self.writeaddr[23:25]),
+            sdram.a[0:9].eq(self.writeaddr[1:10]),
             sdram.a[9].eq(0),
             sdram.a[10].eq(self.lastwrite),
             sdram.cs_n.eq(0),
@@ -422,8 +424,8 @@ class SDRAM(Module):
             read_port.rvalid.eq(0),
 
             # Activate relevant row for this address
-            sdram.ba.eq(self.readaddr[22:24]),
-            sdram.a.eq(self.readaddr[9:22]),
+            sdram.ba.eq(self.readaddr[23:25]),
+            sdram.a.eq(self.readaddr[10:23]),
             sdram.cs_n.eq(0),
             sdram.ras_n.eq(SDRAM_COMMANDS["ACT"][0]),
             sdram.cas_n.eq(SDRAM_COMMANDS["ACT"][1]),
@@ -467,8 +469,8 @@ class SDRAM(Module):
 
             # Send the SDRAM READ command,
             # with AUTO PRECHARGE to close this row if rlast is set
-            sdram.ba.eq(self.readaddr[22:24]),
-            sdram.a[0:9].eq(self.readaddr[0:9]),
+            sdram.ba.eq(self.readaddr[23:25]),
+            sdram.a[0:9].eq(self.readaddr[1:10]),
             sdram.a[9].eq(0),
             If(self.beatcount == self.rburstlen,
                sdram.a[10].eq(1)).Else(sdram.a[10].eq(0)),
@@ -479,8 +481,7 @@ class SDRAM(Module):
             sdram.dm.eq(0x0),
             self.dqt.oe.eq(0),
 
-            #NextState("RREAD_WAIT"),
-            NextState("RLOADL"),
+            NextState("RREAD_WAIT"),
         )
 
         self.fsm.act(

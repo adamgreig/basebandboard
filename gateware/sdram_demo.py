@@ -41,7 +41,10 @@ class Top(Module):
         self.comb += self.dac.data.eq(self.nco.x[3:16])
 
         # Make a BRAM to dump ADC readings into
-        adc_ram = Memory(32, 512, list(range(512)))
+        init = [0x11112222, 0x33334444, 0x55556666, 0x77778888]
+        init += [0xDEADBEEF, 0xCAFEBABE, 0xABAD1DEA, 0x0DEFACED]*126
+        init += [0x9999AAAA, 0xBBBBCCCC, 0xDDDDEEEE, 0xFFFF0000]
+        adc_ram = Memory(32, 512, init)
         adcreadport = adc_ram.get_port(mode=1)
         adcwriteport = adc_ram.get_port(write_capable=True, mode=0)
         self.specials += [adc_ram, adcreadport, adcwriteport]
@@ -72,8 +75,8 @@ class Top(Module):
             "t_mrd": 3,
             "t_ref": 750,
         }
-        axirp = AXI3ReadPort(1, 24, 32)
-        axiwp = AXI3WritePort(1, 24, 32)
+        axirp = AXI3ReadPort(1, 25, 32)
+        axiwp = AXI3WritePort(1, 25, 32)
         sdram = plat.request("sdram")
         sdramctl = SDRAM(axirp, axiwp, sdram, timings)
         self.submodules += sdramctl
@@ -98,7 +101,7 @@ class Top(Module):
             sdram2bramtrig.eq(0),
             bram2uarttrig.eq(0),
 
-            If(fsm_trig, NextState("ADC2BRAM"))
+            If(fsm_trig, NextState("BRAM2SDRAM"))
         )
         self.fsm.act(
             "ADC2BRAM",

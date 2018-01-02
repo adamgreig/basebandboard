@@ -87,8 +87,12 @@ _lcd = [
         IOStandard("3.3-V LVTTL")),
 ]
 
+_u = [
+    ("uart", 0, Pins("A14"), IOStandard("3.3-V LVTTL"))
+]
+
 
 class BBBPlatform(de0nano.Platform):
     def __init__(self):
         de0nano.AlteraPlatform.__init__(self, "EP4CE22F17C6",
-                                        de0nano._io + _dac + _adc + _lcd)
+                                        de0nano._io + _dac + _adc + _lcd + _u)
