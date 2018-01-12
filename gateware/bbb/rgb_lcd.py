@@ -5,7 +5,7 @@ Copyright 2017 Adam Greig
 """
 
 from migen import Module, Signal, Cat, If, ClockDomain, Memory, Array, Cat
-from migen import FSM, NextValue, NextState
+from migen import FSM, NextValue, NextState, Mux
 from .axi3 import AXI3ToBRAM, BRAMToAXI3
 
 
@@ -17,12 +17,12 @@ class RGBLCD(Module):
 
     Currently hardcoded for 272x480 24-bit RGB LCDs.
     """
-    def __init__(self, lcd, axi3_port, start_addr):
+    def __init__(self, lcd, axi3_port, framebuf):
         """
         `lcd`: has `data`, `pclk`, `hsync`, `vsync`, `de` members.
         `axi3_port`: an AXI3ReadPort connected to memory etc. will be mastered
                      to command reads of screen data.
-        `start_addr`: the initial address of the frame buffer (for axi3)
+        `framebuf`: the initial address of the frame buffer (for axi3)
         """
         rows = 272
         cols = 480
@@ -58,10 +58,10 @@ class RGBLCD(Module):
         axitrig = Signal()
         self.comb += axitrig.eq((lcd.hsync == 0)
                                 & (hcount >= vbp) & (hcount < (rows + vbp)))
-        axiaddr = Signal(start_addr.nbits)
-        self.comb += axiaddr.eq(start_addr + (4*cols)*(hcount - vbp))
+        axiaddr = Signal(framebuf.nbits)
+        self.comb += axiaddr.eq(framebuf + (4*cols)*(hcount - vbp))
         axi_to_bram = AXI3ToBRAM(axi3_port, bram_wp, axitrig, axiaddr,
-                                 cols+4, axi3_burst_length=4)
+                                 cols, axi3_burst_length=16)
         self.submodules += axi_to_bram
 
         # Count up pclks and hsyncs, resetting at the end of each period
@@ -88,12 +88,48 @@ class RGBLCD(Module):
                              lcd.vsync.eq(0)).Else(lcd.vsync.eq(1))
 
 
+class DoubleBuffer(Module):
+    """
+    Manages two buffers, so the front buffer can be displayed and then
+    swapped with a back buffer when it has been drawn.
+    """
+    def __init__(self, framebuf1, framebuf2, hsync, drawn):
+        """
+        `framebuf1`: address of the first framebuf
+        `framebuf2`: address of the second framebuf
+        `hsync`: hsync output from LCD
+        `drawn`: drawing-complete output from drawer
+
+        Outputs `self.swapped` which pulses whenever the buffers swap.
+        """
+        self.swapped = Signal()
+
+        assert(framebuf1.nbits == framebuf2.nbits)
+        front = Signal(framebuf1.nbits)
+        back = Signal(framebuf1.nbits)
+        sel = Signal()
+
+        # Output whichever is the correct address based on the sel line
+        self.sync += front.eq(Mux(sel, framebuf1, framebuf2))
+        self.sync += back.eq(Mux(sel, framebuf2, framebuf1))
+
+        # Shorten hsync pulse
+        hsync_prev = Signal()
+        hsync_pulse = Signal()
+        self.sync += hsync_prev.eq(hsync)
+        self.sync += hsync_pulse.eq(hsync & ~hsync_prev)
+
+        self.sync += sel.eq((hsync_pulse & drawn) ^ sel)
+        self.sync += self.swapped.eq(hsync_pulse & drawn)
+
+
 class LCDPatternGenerator(Module):
-    def __init__(self, axi3_port, start_addr, ts):
+    def __init__(self, axi3_port, framebuf, ts):
         """
         `axi3_port`: an AXI3WritePort connected to memory etc. will be mastered
                      to command writes of test pattern data.
-        `start_addr`: the initial address of the frame buffer.
+        `framebuf`: the initial address of the frame buffer.
+        `ts`: touchscreen
         """
         # Maintain row and column counters
         vsd = Signal(9)
@@ -126,14 +162,14 @@ class LCDPatternGenerator(Module):
 
         # Make a counter to track the address of the current line,
         # offset for the vertical back porch and compensate for latency.
-        axiaddr = Signal(start_addr.nbits)
-        self.comb += axiaddr.eq(start_addr + (4*480)*(row - 1))
+        axiaddr = Signal(framebuf.nbits)
+        self.comb += axiaddr.eq(framebuf + (4*480)*(row - 1))
 
         # Set up an AXI3 master to write data into the BRAM
         axitrigger = Signal()
         self.sync += axitrigger.eq(col == 480 - 1)
         bram_to_axi = BRAMToAXI3(axi3_port, bram_rp, axitrigger, axiaddr,
-                                 480, axi3_burst_length=4)
+                                 480, axi3_burst_length=16)
         self.comb += run.eq(bram_to_axi.ready)
         self.submodules += bram_to_axi
 
