@@ -104,7 +104,7 @@ class DoubleBuffer(Module):
         """
         self.swapped = Signal()
 
-        assert(framebuf1.nbits == framebuf2.nbits)
+        assert framebuf1.nbits == framebuf2.nbits
         front = Signal(framebuf1.nbits)
         back = Signal(framebuf1.nbits)
         sel = Signal()

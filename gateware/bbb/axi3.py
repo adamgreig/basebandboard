@@ -580,3 +580,121 @@ class AXI3ReadMux(Module):
                self.slave_port.rready,
                NextState("IDLE"))
         )
+
+
+class AXI3WriteMux(Module):
+    """
+    AXI3 multi-master single-slave write multiplexer.
+    """
+    def __init__(self, slave_port):
+        """
+        `slave_port` is an AXI3WritePort connected to a slave device.
+        This module will drive its master-driven signals from one
+        of the attached masters.
+        """
+        self.slave_port = slave_port
+        self.master_ports = []
+
+    def add_master(self):
+        """
+        Creates a new AXI3WritePort and returns it. The slave lines on the
+        new port will be driven by the underlying device. The master lines
+        should be driven by an external master.
+        """
+        port = AXI3WritePort(self.slave_port.id_width,
+                             self.slave_port.addr_width,
+                             self.slave_port.data_width)
+        self.comb += [
+            port.bid.eq(self.slave_port.bid),
+            port.bresp.eq(self.slave_port.bresp),
+        ]
+
+        self.master_ports.append(port)
+        return port
+
+    def do_finalize(self):
+        n = len(self.master_ports)
+        sel = Signal(n)
+
+        # Connect the slave port bus lines to the selected master
+        cases = {
+            1 << i: [
+                self.slave_port.awid.eq(self.master_ports[i].awid),
+                self.slave_port.awaddr.eq(self.master_ports[i].awaddr),
+                self.slave_port.awlen.eq(self.master_ports[i].awlen),
+                self.slave_port.awsize.eq(self.master_ports[i].awsize),
+                self.slave_port.awburst.eq(self.master_ports[i].awburst),
+                self.slave_port.awlock.eq(self.master_ports[i].awlock),
+                self.slave_port.awcache.eq(self.master_ports[i].awcache),
+                self.slave_port.awprot.eq(self.master_ports[i].awprot),
+                self.slave_port.awvalid.eq(self.master_ports[i].awvalid),
+                self.slave_port.wid.eq(self.master_ports[i].wid),
+                self.slave_port.wdata.eq(self.master_ports[i].wdata),
+                self.slave_port.wstrb.eq(self.master_ports[i].wstrb),
+                self.slave_port.wlast.eq(self.master_ports[i].wlast),
+                self.slave_port.wvalid.eq(self.master_ports[i].wvalid),
+                self.slave_port.bready.eq(self.master_ports[i].bready),
+            ]
+            for i in range(n)
+        }
+        cases["default"] = [
+                self.slave_port.awid.eq(0),
+                self.slave_port.awaddr.eq(0),
+                self.slave_port.awlen.eq(0),
+                self.slave_port.awsize.eq(0),
+                self.slave_port.awburst.eq(0),
+                self.slave_port.awlock.eq(0),
+                self.slave_port.awcache.eq(0),
+                self.slave_port.awprot.eq(0),
+                self.slave_port.awvalid.eq(0),
+                self.slave_port.wid.eq(0),
+                self.slave_port.wdata.eq(0),
+                self.slave_port.wstrb.eq(0),
+                self.slave_port.wlast.eq(0),
+                self.slave_port.wvalid.eq(0),
+                self.slave_port.bready.eq(0),
+        ]
+        self.comb += Case(sel, cases)
+
+        # Connect slave-driven handshake to appropriate master
+        self.comb += [
+            self.master_ports[i].awready.eq(
+                Mux(sel[i], self.slave_port.awready, 0))
+            for i in range(n)]
+        self.comb += [
+            self.master_ports[i].wready.eq(
+                Mux(sel[i], self.slave_port.wready, 0))
+            for i in range(n)]
+        self.comb += [
+            self.master_ports[i].bvalid.eq(
+                Mux(sel[i], self.slave_port.bvalid, 0))
+            for i in range(n)]
+
+        # Make an array of input AWVALID which we will monitor to transition
+        awvalid_arr = Array(port.awvalid for port in self.master_ports)
+
+        # Manage interconnect state
+        self.submodules.fsm = FSM(reset_state="IDLE")
+
+        # If the currently selected master asserts AWVALID, we'll leave it
+        # selected and go to BUSY state. Otherwise, we check all other
+        # masters in insertion order, select the first one which has asserted
+        # AWVALID, and go to BUSY.  If no masters have asserted AWVALID we
+        # remain in IDLE.
+        idle_check = If(self.slave_port.awvalid, NextState("BUSY"))
+        for i in range(n):
+            idle_check = idle_check.Elif(
+                awvalid_arr[i],
+                NextValue(sel, 1 << i),
+                NextState("BUSY"))
+
+        self.fsm.act("IDLE", idle_check)
+
+        # The current read transaction will finish when the slave is
+        # asserting BVALID, and the master asserts BREADY.
+        self.fsm.act(
+            "BUSY",
+            If(self.slave_port.bvalid &
+               self.slave_port.bready,
+               NextState("IDLE"))
+        )

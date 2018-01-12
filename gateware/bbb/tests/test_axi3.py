@@ -1,7 +1,7 @@
 from ..axi3 import AXI3ReadPort, AXI3WritePort
 from ..axi3 import AXI3RegReader, AXI3RegWriter
 from ..axi3 import AXI3ToBRAM, BRAMToAXI3
-from ..axi3 import AXI3ReadMux
+from ..axi3 import AXI3ReadMux, AXI3WriteMux
 from ..axi3 import BURST_TYPE_INCR, BURST_SIZE_4, RESP_OKAY, RESP_SLVERR
 from migen import Array, Signal, Memory, Module
 from migen.sim import run_simulation
@@ -480,4 +480,74 @@ def test_axi3_read_mux():
         for _ in range(50):
             yield
 
+        assert (yield bram0[0]) == 0xCAFE
+        assert (yield bram1[0]) == 0xBEEF
+        assert (yield bram2[0]) == 0xFACE
+        assert (yield bram3[0]) == 0xDEAD
+
     run_simulation(top, tb(), vcd_name="axi3readmux.vcd")
+
+
+def test_axi3_write_mux():
+    slave_port = AXI3WritePort(id_width=2, addr_width=6, data_width=32)
+    reg0 = Signal(32)
+    reg1 = Signal(32)
+    reg2 = Signal(32)
+    reg3 = Signal(32)
+    regfile = Array([reg0, reg1, reg2, reg3])
+    axi3sw = AXI3RegWriter(slave_port, regfile)
+    mux = AXI3WriteMux(slave_port)
+
+    bram0 = Memory(32, 2, [0xCAFE])
+    bram1 = Memory(32, 2, [0xBEEF])
+    bram2 = Memory(32, 2, [0xFACE])
+    bram3 = Memory(32, 2, [0xDEAD])
+    brams = [bram0, bram1, bram2, bram3]
+    bram_ports = [bram.get_port() for bram in brams]
+    triggers = [Signal() for _ in range(4)]
+    bramtoaxi3s = []
+
+    for i in range(4):
+        master_port = mux.add_master()
+        bramtoaxi3s.append(BRAMToAXI3(master_port, bram_ports[i], triggers[i],
+                                      i*4, 1, 1))
+
+    top = Module()
+    top.submodules += [axi3sw, mux]
+    top.specials += brams
+    top.specials += bram_ports
+    top.submodules += bramtoaxi3s
+
+    def tb():
+        for _ in range(100):
+            yield
+
+        # Trigger 0
+        yield triggers[0].eq(1)
+        yield
+        yield triggers[0].eq(0)
+        for _ in range(50):
+            yield
+
+        # Trigger 1 and 2 together
+        yield triggers[1].eq(1)
+        yield triggers[2].eq(1)
+        yield
+        yield triggers[1].eq(0)
+        yield triggers[2].eq(0)
+        for _ in range(50):
+            yield
+
+        # Trigger 3
+        yield triggers[3].eq(1)
+        yield
+        yield triggers[3].eq(0)
+        for _ in range(50):
+            yield
+
+        assert (yield reg0) == 0xCAFE
+        assert (yield reg1) == 0xBEEF
+        assert (yield reg2) == 0xFACE
+        assert (yield reg3) == 0xDEAD
+
+    run_simulation(top, tb(), vcd_name="axi3writemux.vcd")
