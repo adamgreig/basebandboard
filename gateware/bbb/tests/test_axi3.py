@@ -456,11 +456,28 @@ def test_axi3_read_mux():
     def tb():
         for _ in range(10):
             yield
-        for i in range(4):
-            yield triggers[i].eq(1)
+
+        # Trigger 0
+        yield triggers[0].eq(1)
+        yield
+        yield triggers[0].eq(0)
+        for _ in range(50):
             yield
-            yield triggers[i].eq(0)
-            for _ in range(50):
-                yield
+
+        # Trigger 1 and 2 together
+        yield triggers[1].eq(1)
+        yield triggers[2].eq(1)
+        yield
+        yield triggers[1].eq(0)
+        yield triggers[2].eq(0)
+        for _ in range(50):
+            yield
+
+        # Trigger 3
+        yield triggers[3].eq(1)
+        yield
+        yield triggers[3].eq(0)
+        for _ in range(50):
+            yield
 
     run_simulation(top, tb(), vcd_name="axi3readmux.vcd")
