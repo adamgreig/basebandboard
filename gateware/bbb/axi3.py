@@ -4,10 +4,11 @@ AXI3 interfaces.
 Copyright 2017 Adam Greig
 """
 
-from migen import Module, Signal, FSM, If, NextState, NextValue
+from migen import Module, Signal, FSM, If, NextState, NextValue, Case, Mux
+from migen import Array
 
 
-class AXI3ReadPort(Module):
+class AXI3ReadPort:
     def __init__(self, id_width, addr_width, data_width):
         self.id_width = id_width
         self.addr_width = addr_width
@@ -32,14 +33,6 @@ class AXI3ReadPort(Module):
         self.rlast = Signal()
         self.rvalid = Signal()
         self.rready = Signal()
-
-    def connect(self, **kwargs):
-        signals = ("arid", "araddr", "arlen", "arsize", "arburst", "arlock",
-                   "arcache", "arprot", "arvalid", "arready", "rid", "rdata",
-                   "rresp", "rlast", "rvalid", "rready")
-        for signal in signals:
-            if signal in kwargs:
-                self.comb += getattr(self, signal).eq(kwargs[signal])
 
 
 class AXI3WritePort:
@@ -73,15 +66,6 @@ class AXI3WritePort:
         self.bresp = Signal(2)
         self.bvalid = Signal()
         self.bready = Signal()
-
-    def connect(self, **kwargs):
-        signals = ("awid", "awaddr", "awlen", "awsize", "awburst", "awlock",
-                   "awcache", "awprot", "awvalid", "awready", "wid", "wdata",
-                   "wstrb", "wlast", "wvalid", "wready", "bid", "bresp",
-                   "bvalid", "bready")
-        for signal in signals:
-            if signal in kwargs:
-                self.comb += getattr(self, signal).eq(kwargs[signal])
 
 
 BURST_TYPE_FIXED = 0b00
@@ -488,4 +472,111 @@ class BRAMToAXI3(Module):
             (If(write_port.wlast == 0, NextState("WRITE_LOAD"))
              .Elif(bram_port.adr == length - 1, NextState("READY"))
              .Else(NextState("WRITE_REQUEST")))
+        )
+
+
+class AXI3ReadMux(Module):
+    """
+    AXI3 multi-master single-slave read multiplexer.
+    """
+    def __init__(self, slave_port):
+        """
+        `slave_port` is an AXI3ReadPort connected to a slave device.
+        This module will drive its master-driven signals from one
+        of the attached masters.
+        """
+        self.slave_port = slave_port
+        self.master_ports = []
+
+    def add_master(self):
+        """
+        Creates a new AXI3ReadPort and returns it. The slave lines on the
+        new port will be driven by the underlying device. The master lines
+        should be driven by an external master.
+        """
+        port = AXI3ReadPort(self.slave_port.id_width,
+                            self.slave_port.addr_width,
+                            self.slave_port.data_width)
+        self.comb += [
+            port.rid.eq(self.slave_port.rid),
+            port.rdata.eq(self.slave_port.rdata),
+            port.rresp.eq(self.slave_port.rresp),
+            port.rlast.eq(self.slave_port.rlast),
+        ]
+
+        self.master_ports.append(port)
+        return port
+
+    def do_finalize(self):
+        n = len(self.master_ports)
+        sel = Signal(n)
+
+        # Connect the slave port bus lines to the selected master
+        cases = {
+            1 << i: [
+                self.slave_port.arid.eq(self.master_ports[i].arid),
+                self.slave_port.araddr.eq(self.master_ports[i].araddr),
+                self.slave_port.arlen.eq(self.master_ports[i].arlen),
+                self.slave_port.arsize.eq(self.master_ports[i].arsize),
+                self.slave_port.arburst.eq(self.master_ports[i].arburst),
+                self.slave_port.arlock.eq(self.master_ports[i].arlock),
+                self.slave_port.arcache.eq(self.master_ports[i].arcache),
+                self.slave_port.arprot.eq(self.master_ports[i].arprot),
+                self.slave_port.arvalid.eq(self.master_ports[i].arvalid),
+                self.slave_port.rready.eq(self.master_ports[i].rready),
+            ]
+            for i in range(n)
+        }
+        cases["default"] = [
+                self.slave_port.arid.eq(0),
+                self.slave_port.araddr.eq(0),
+                self.slave_port.arlen.eq(0),
+                self.slave_port.arsize.eq(0),
+                self.slave_port.arburst.eq(0),
+                self.slave_port.arlock.eq(0),
+                self.slave_port.arcache.eq(0),
+                self.slave_port.arprot.eq(0),
+                self.slave_port.arvalid.eq(0),
+                self.slave_port.rready.eq(0),
+        ]
+        self.comb += Case(sel, cases)
+
+        # Connect slave-driven handshake to appropriate master
+        self.comb += [
+            self.master_ports[i].arready.eq(
+                Mux(sel[i], self.slave_port.arready, 0))
+            for i in range(n)]
+        self.comb += [
+            self.master_ports[i].rvalid.eq(
+                Mux(sel[i], self.slave_port.rvalid, 0))
+            for i in range(n)]
+
+        # Make an array of input ARVALID which we will monitor to transition
+        arvalid_arr = Array(port.arvalid for port in self.master_ports)
+
+        # Manage interconnect state
+        self.submodules.fsm = FSM(reset_state="IDLE")
+
+        # If the currently selected master asserts ARVALID, we'll leave it
+        # selected and go to BUSY state. Otherwise, we check all other
+        # masters in insertion order, select the first one which has asserted
+        # ARVALID, and go to BUSY.  If no masters have asserted ARVALID we
+        # remain in IDLE.
+        idle_check = If(self.slave_port.arvalid, NextState("BUSY"))
+        for i in range(n):
+            idle_check = idle_check.Elif(
+                arvalid_arr[i],
+                NextValue(sel, 1 << i),
+                NextState("BUSY"))
+
+        self.fsm.act("IDLE", idle_check)
+
+        # The current read transaction will finish when the slave is
+        # asserting RLAST and RVALID, and the master asserts RREADY.
+        self.fsm.act(
+            "BUSY",
+            If(self.slave_port.rlast &
+               self.slave_port.rvalid &
+               self.slave_port.rready,
+               NextState("IDLE"))
         )

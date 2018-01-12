@@ -1,6 +1,7 @@
 from ..axi3 import AXI3ReadPort, AXI3WritePort
 from ..axi3 import AXI3RegReader, AXI3RegWriter
 from ..axi3 import AXI3ToBRAM, BRAMToAXI3
+from ..axi3 import AXI3ReadMux
 from ..axi3 import BURST_TYPE_INCR, BURST_SIZE_4, RESP_OKAY, RESP_SLVERR
 from migen import Array, Signal, Memory, Module
 from migen.sim import run_simulation
@@ -419,3 +420,47 @@ def test_bram_to_axi3():
             yield
 
     run_simulation(top, tb(), vcd_name="bramtoaxi3.vcd")
+
+
+def test_axi3_read_mux():
+    slave_port = AXI3ReadPort(id_width=2, addr_width=6, data_width=32)
+    reg0 = Signal(32, reset=0xCAFE)
+    reg1 = Signal(32, reset=0xBEEF)
+    reg2 = Signal(32, reset=0xFACE)
+    reg3 = Signal(32, reset=0xDEAD)
+    regfile = Array([reg0, reg1, reg2, reg3])
+    axi3sr = AXI3RegReader(slave_port, regfile)
+
+    mux = AXI3ReadMux(slave_port)
+
+    bram0 = Memory(32, 2)
+    bram1 = Memory(32, 2)
+    bram2 = Memory(32, 2)
+    bram3 = Memory(32, 2)
+    brams = [bram0, bram1, bram2, bram3]
+    bram_ports = [bram.get_port(write_capable=True) for bram in brams]
+    triggers = [Signal() for _ in range(4)]
+    axi3tobrams = []
+
+    for i in range(4):
+        master_port = mux.add_master()
+        axi3tobrams.append(AXI3ToBRAM(master_port, bram_ports[i], triggers[i],
+                                      i*4, 1, 1))
+
+    top = Module()
+    top.submodules += [axi3sr, mux]
+    top.specials += brams
+    top.specials += bram_ports
+    top.submodules += axi3tobrams
+
+    def tb():
+        for _ in range(10):
+            yield
+        for i in range(4):
+            yield triggers[i].eq(1)
+            yield
+            yield triggers[i].eq(0)
+            for _ in range(50):
+                yield
+
+    run_simulation(top, tb(), vcd_name="axi3readmux.vcd")
