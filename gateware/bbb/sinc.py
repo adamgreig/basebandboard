@@ -120,6 +120,11 @@ class SincInterpolator(Module):
             NextValue(coeff_ctr, coeff_ctr + 1),
             NextValue(out_adr, out_adr + 1),
             If(shift, NextValue(samp_adr, samp_adr + 1)),
-            If(samp_adr == 72, NextState("READY"))
+            If(samp_adr == 72, NextState("DONE"))
+        )
+        self.fsm.act(
+            "DONE",
+            NextState("READY"),
         )
         self.comb += out_port.we.eq(self.fsm.ongoing("RUN"))
+        self.comb += self.done.eq(self.fsm.ongoing("DONE"))
