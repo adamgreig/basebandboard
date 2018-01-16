@@ -306,7 +306,163 @@ class AXI3RegWriter(Module):
         ),
 
 
-class AXI3ToBRAM(Module):
+class AXI3ToFromBRAM(Module):
+    """
+    Read and write data between an AXI3 slave and a BRAM.
+    """
+    def __init__(self, axi3_read, axi3_write, bram_port,
+                 trigger_read, trigger_write, start_addr, length,
+                 axi3_burst_length=1):
+        """
+        `axi3_read`: an AXI3ReadPort or None
+        `axi3_write`: an AXI3WritePort or None
+        `bram_port`: a MemoryPort, write capable if axi3_read is not None
+        `trigger_read`: when asserted, copies `length` 32bit words from the
+                        `axi3_read` into `bram_port` starting at address
+                        `start_addr`.
+        `trigger_write`: when asserted, copies `length` 32bit words from the
+                         `bram_port` into the `axi3_write` port, starting at
+                         address `start_addr`.
+        `self.ready`: asserted when idle
+        """
+        self.ready = Signal()
+
+        self.rlast = Signal()
+        burstcount = Signal(max=axi3_burst_length+1)
+
+        # These parameters of the read request are fixed
+        if axi3_read is not None:
+            self.comb += axi3_read.arid.eq(0)
+            self.comb += axi3_read.arlen.eq(axi3_burst_length - 1)
+            self.comb += axi3_read.arsize.eq(BURST_SIZE_4)
+            self.comb += axi3_read.arburst.eq(BURST_TYPE_INCR)
+            self.comb += axi3_read.arlock.eq(0b00)
+            self.comb += axi3_read.arcache.eq(0b0000)
+            self.comb += axi3_read.arprot.eq(0b000)
+
+        # These parameters of the write requests are fixed
+        if axi3_write is not None:
+            self.comb += axi3_write.awid.eq(0)
+            self.comb += axi3_write.awlen.eq(axi3_burst_length - 1)
+            self.comb += axi3_write.awsize.eq(BURST_SIZE_4)
+            self.comb += axi3_write.awburst.eq(BURST_TYPE_INCR)
+            self.comb += axi3_write.awlock.eq(0b00)
+            self.comb += axi3_write.awcache.eq(0b0000)
+            self.comb += axi3_write.awprot.eq(0b000)
+            self.comb += axi3_write.wid.eq(0)
+            self.comb += axi3_write.wdata.eq(bram_port.dat_r)
+            self.comb += axi3_write.wstrb.eq(0b1111)
+            self.comb += axi3_write.wlast.eq(burstcount == axi3_burst_length-1)
+            self.comb += axi3_write.bready.eq(1)
+
+        # Make the state machine that manages reads and writes.
+        # Our `self.ready` output is just whether we're in the READY state.
+        self.submodules.fsm = FSM(reset_state="READY")
+        self.comb += self.ready.eq(self.fsm.ongoing("READY"))
+
+        # Form the READY state commands differently depending on whether
+        # `axi3_read` and/or `axi3_write` are None
+        ready_commands = [
+            NextValue(bram_port.adr, 0),
+        ]
+
+        if axi3_read is not None:
+            ready_commands += [
+                axi3_read.arvalid.eq(0),
+                axi3_read.rready.eq(0),
+                NextValue(axi3_read.araddr, start_addr),
+                If(trigger_read, NextState("READ_REQUEST")),
+            ]
+            self.comb += bram_port.we.eq(self.fsm.ongoing("READ_STORE"))
+
+        if axi3_write is not None:
+            ready_commands += [
+                axi3_write.awvalid.eq(0),
+                axi3_write.wvalid.eq(0),
+                NextValue(axi3_write.awaddr, start_addr),
+                If(trigger_write, NextState("WRITE_REQUEST"))
+            ]
+
+        self.fsm.act("READY", ready_commands)
+
+        # Add relevant states for when axi3_read is not None
+        if axi3_read is not None:
+            self.fsm.act(
+                "READ_REQUEST",
+                axi3_read.arvalid.eq(1),
+                axi3_read.rready.eq(0),
+
+                If(axi3_read.arready, NextState("READ_WAIT"))
+            )
+
+            self.fsm.act(
+                "READ_WAIT",
+                axi3_read.arvalid.eq(0),
+                axi3_read.rready.eq(1),
+
+                NextValue(bram_port.dat_w, axi3_read.rdata),
+                NextValue(self.rlast, axi3_read.rlast),
+                If(axi3_read.rvalid, NextState("READ_STORE"))
+            )
+
+            self.fsm.act(
+                "READ_STORE",
+                axi3_read.arvalid.eq(0),
+                axi3_read.rready.eq(0),
+
+                # Increment BRAM and AXI3 addresses
+                NextValue(bram_port.adr, bram_port.adr + 1),
+                NextValue(axi3_read.araddr, axi3_read.araddr + 4),
+
+                (If(self.rlast == 0, NextState("READ_WAIT"))
+                 .Elif(bram_port.adr == length - 1, NextState("READY"))
+                 .Else(NextState("READ_REQUEST")))
+            )
+
+        # Add relevant states for when axi3_write is not None
+        if axi3_write is not None:
+            self.fsm.act(
+                "WRITE_REQUEST",
+                axi3_write.awvalid.eq(1),
+                axi3_write.wvalid.eq(0),
+
+                NextValue(burstcount, 0),
+
+                If(axi3_write.awready, NextState("WRITE_LOAD"))
+            )
+
+            self.fsm.act(
+                "WRITE_LOAD",
+                axi3_write.awvalid.eq(0),
+                axi3_write.wvalid.eq(0),
+
+                NextState("WRITE_WAIT")
+            )
+
+            self.fsm.act(
+                "WRITE_WAIT",
+                axi3_write.awvalid.eq(0),
+                axi3_write.wvalid.eq(1),
+
+                If(axi3_write.wready, NextState("WRITE_NEXT"))
+            )
+
+            self.fsm.act(
+                "WRITE_NEXT",
+                axi3_write.awvalid.eq(0),
+                axi3_write.wvalid.eq(0),
+
+                NextValue(bram_port.adr, bram_port.adr + 1),
+                NextValue(burstcount, burstcount + 1),
+                NextValue(axi3_write.awaddr, axi3_write.awaddr + 4),
+
+                (If(axi3_write.wlast == 0, NextState("WRITE_LOAD"))
+                 .Elif(bram_port.adr == length - 1, NextState("READY"))
+                 .Else(NextState("WRITE_REQUEST")))
+            )
+
+
+class AXI3ToBRAM(AXI3ToFromBRAM):
     """
     Read data from an AXI3 slave into a BRAM.
     """
@@ -320,73 +476,13 @@ class AXI3ToBRAM(Module):
         while idle and deasserted during processing. The trigger input is
         ignored while not ready.
         """
-        self.ready = Signal()
-
-        # These parameters of the read request are fixed
-        self.comb += read_port.arid.eq(0)
-        self.comb += read_port.arlen.eq(axi3_burst_length - 1)
-        self.comb += read_port.arsize.eq(BURST_SIZE_4)
-        self.comb += read_port.arburst.eq(BURST_TYPE_INCR)
-        self.comb += read_port.arlock.eq(0b00)
-        self.comb += read_port.arcache.eq(0b0000)
-        self.comb += read_port.arprot.eq(0b000)
-
-        self.rlast = Signal()
-
-        self.submodules.fsm = FSM(reset_state="READY")
-
-        self.fsm.act(
-            "READY",
-            self.ready.eq(1),
-            read_port.arvalid.eq(0),
-            read_port.rready.eq(0),
-            bram_port.we.eq(0),
-
-            NextValue(bram_port.adr, 0),
-            NextValue(read_port.araddr, start_addr),
-            If(trigger, NextState("READ_REQUEST"))
-        )
-
-        self.fsm.act(
-            "READ_REQUEST",
-            self.ready.eq(0),
-            read_port.arvalid.eq(1),
-            read_port.rready.eq(0),
-            bram_port.we.eq(0),
-
-            If(read_port.arready, NextState("READ_WAIT"))
-        )
-
-        self.fsm.act(
-            "READ_WAIT",
-            self.ready.eq(0),
-            read_port.arvalid.eq(0),
-            read_port.rready.eq(1),
-            bram_port.we.eq(0),
-
-            NextValue(bram_port.dat_w, read_port.rdata),
-            NextValue(self.rlast, read_port.rlast),
-            If(read_port.rvalid, NextState("READ_STORE"))
-        )
-
-        self.fsm.act(
-            "READ_STORE",
-            self.ready.eq(0),
-            read_port.arvalid.eq(0),
-            read_port.rready.eq(0),
-            bram_port.we.eq(1),
-
-            # Increment BRAM and AXI3 addresses
-            NextValue(bram_port.adr, bram_port.adr + 1),
-            NextValue(read_port.araddr, read_port.araddr + 4),
-
-            (If(self.rlast == 0, NextState("READ_WAIT"))
-             .Elif(bram_port.adr == length - 1, NextState("READY"))
-             .Else(NextState("READ_REQUEST")))
-        )
+        super().__init__(axi3_read=read_port, axi3_write=None,
+                         bram_port=bram_port, trigger_read=trigger,
+                         trigger_write=None, start_addr=start_addr,
+                         length=length, axi3_burst_length=axi3_burst_length)
 
 
-class BRAMToAXI3(Module):
+class BRAMToAXI3(AXI3ToFromBRAM):
     """
     Write data from a BRAM into an AXI3 slave.
     """
@@ -399,80 +495,10 @@ class BRAMToAXI3(Module):
         signal `self.ready` is asserted while idle and deasserted during
         processing. The trigger input is ignored while not ready.
         """
-        self.ready = Signal()
-
-        burstcount = Signal(max=axi3_burst_length+1)
-
-        # These parameters of the write requests are fixed
-        self.comb += write_port.awid.eq(0)
-        self.comb += write_port.awlen.eq(axi3_burst_length - 1)
-        self.comb += write_port.awsize.eq(BURST_SIZE_4)
-        self.comb += write_port.awburst.eq(BURST_TYPE_INCR)
-        self.comb += write_port.awlock.eq(0b00)
-        self.comb += write_port.awcache.eq(0b0000)
-        self.comb += write_port.awprot.eq(0b000)
-        self.comb += write_port.wid.eq(0)
-        self.comb += write_port.wdata.eq(bram_port.dat_r)
-        self.comb += write_port.wstrb.eq(0b1111)
-        self.comb += write_port.wlast.eq(burstcount == axi3_burst_length-1)
-        self.comb += write_port.bready.eq(1)
-
-        self.submodules.fsm = FSM(reset_state="READY")
-
-        self.fsm.act(
-            "READY",
-            self.ready.eq(1),
-            write_port.awvalid.eq(0),
-            write_port.wvalid.eq(0),
-
-            NextValue(bram_port.adr, 0),
-            NextValue(write_port.awaddr, start_addr),
-            If(trigger, NextState("WRITE_REQUEST"))
-        )
-
-        self.fsm.act(
-            "WRITE_REQUEST",
-            self.ready.eq(0),
-            write_port.awvalid.eq(1),
-            write_port.wvalid.eq(0),
-
-            NextValue(burstcount, 0),
-
-            If(write_port.awready, NextState("WRITE_LOAD"))
-        )
-
-        self.fsm.act(
-            "WRITE_LOAD",
-            self.ready.eq(0),
-            write_port.awvalid.eq(0),
-            write_port.wvalid.eq(0),
-
-            NextState("WRITE_WAIT")
-        )
-
-        self.fsm.act(
-            "WRITE_WAIT",
-            self.ready.eq(0),
-            write_port.awvalid.eq(0),
-            write_port.wvalid.eq(1),
-
-            If(write_port.wready, NextState("WRITE_NEXT"))
-        )
-
-        self.fsm.act(
-            "WRITE_NEXT",
-            self.ready.eq(0),
-            write_port.awvalid.eq(0),
-            write_port.wvalid.eq(0),
-
-            NextValue(bram_port.adr, bram_port.adr + 1),
-            NextValue(burstcount, burstcount + 1),
-            NextValue(write_port.awaddr, write_port.awaddr + 4),
-
-            (If(write_port.wlast == 0, NextState("WRITE_LOAD"))
-             .Elif(bram_port.adr == length - 1, NextState("READY"))
-             .Else(NextState("WRITE_REQUEST")))
-        )
+        super().__init__(axi3_read=None, axi3_write=write_port,
+                         bram_port=bram_port, trigger_read=None,
+                         trigger_write=trigger, start_addr=start_addr,
+                         length=length, axi3_burst_length=axi3_burst_length)
 
 
 class AXI3ReadMux(Module):

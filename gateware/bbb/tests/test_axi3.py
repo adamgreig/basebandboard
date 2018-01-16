@@ -386,6 +386,11 @@ def test_axi3_to_bram():
         for _ in range(200):
             yield
 
+        bram_contents = []
+        for i in range(16):
+            bram_contents.append((yield bram[i]))
+        assert bram_contents == list(range(16))
+
     run_simulation(top, tb(), vcd_name="axi3tobram.vcd")
 
 
@@ -418,6 +423,11 @@ def test_bram_to_axi3():
             yield
         for _ in range(10):
             yield
+
+        reg_contents = []
+        for i in range(16):
+            reg_contents.append((yield regs[i]))
+        assert reg_contents == list(range(16))
 
     run_simulation(top, tb(), vcd_name="bramtoaxi3.vcd")
 
