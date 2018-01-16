@@ -1,6 +1,7 @@
-from migen import Module, Signal, ClockDomain, Memory, Cat
+from migen import Module, Signal, ClockDomain, Memory, Cat, If
 from bbb.platform import BBBPlatform, PLL
-from bbb.rgb_lcd import RGBLCD, LCDPatternGenerator, AR1021TouchController
+from bbb.rgb_lcd import RGBLCD, DoubleBuffer, AR1021TouchController
+from bbb.ui import UIDisplay, UIController
 from bbb.sdram import SDRAM
 from bbb.axi3 import AXI3ReadPort, AXI3WritePort
 from bbb.uart import UARTTxFromMemory, DataToMem
@@ -47,8 +48,8 @@ class Top(Module):
         backlight = platform.request("lcd_backlight")
         self.comb += backlight.eq(1)
         self.comb += display.disp.eq(1)
-        startaddr = Signal(25)
-        self.submodules.lcd = RGBLCD(display, axirp, startaddr)
+        frontbuf = Signal(25)
+        self.submodules.lcd = RGBLCD(display, axirp, frontbuf)
 
         # Touchscreen controller
         touchscreen = platform.request("touchscreen")
@@ -56,9 +57,29 @@ class Top(Module):
         led = platform.request("user_led")
         self.comb += led.eq(~touchscreen.cs)
 
-        # LCD test pattern generator
-        self.submodules.patgen = LCDPatternGenerator(axiwp, startaddr,
-                                                     self.touch)
+        # UI Controller
+        self.submodules.uicontroller = UIController(self.touch)
+
+        # UI display
+        backbuf = Signal(25)
+        bufswap = Signal()
+        self.submodules.uidisplay = UIDisplay(
+            None, axiwp, backbuf, bufswap,
+            self.uicontroller.thresh_x, self.uicontroller.thresh_y,
+            self.uicontroller.beta, self.uicontroller.sigma2,
+            self.uicontroller.tx_src, self.uicontroller.tx_en,
+            self.uicontroller.noise_en)
+
+        # Double buffer controller for LCD
+        fb1 = Signal(25, reset=0)
+        fb2 = Signal(25, reset=(1 << 20))
+        self.submodules.dblbuf = DoubleBuffer(
+            fb1, fb2, display.vsync, self.uidisplay.drawn)
+        self.comb += [
+            frontbuf.eq(self.dblbuf.front),
+            backbuf.eq(self.dblbuf.back),
+            bufswap.eq(self.dblbuf.swapped)
+        ]
 
         # Make a BRAM to fill with touchscreen data and dump over UART
         uart_ram = Memory(32, 4)

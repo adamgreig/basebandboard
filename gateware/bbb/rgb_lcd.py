@@ -93,34 +93,34 @@ class DoubleBuffer(Module):
     Manages two buffers, so the front buffer can be displayed and then
     swapped with a back buffer when it has been drawn.
     """
-    def __init__(self, framebuf1, framebuf2, hsync, drawn):
+    def __init__(self, framebuf1, framebuf2, vsync, drawn):
         """
         `framebuf1`: address of the first framebuf
         `framebuf2`: address of the second framebuf
-        `hsync`: hsync output from LCD
+        `vsync`: vsync output from LCD
         `drawn`: drawing-complete output from drawer
 
         Outputs `self.swapped` which pulses whenever the buffers swap.
         """
         self.swapped = Signal()
-
         assert framebuf1.nbits == framebuf2.nbits
-        front = Signal(framebuf1.nbits)
-        back = Signal(framebuf1.nbits)
+        self.front = Signal(framebuf1.nbits)
+        self.back = Signal(framebuf1.nbits)
+
         sel = Signal()
 
         # Output whichever is the correct address based on the sel line
-        self.sync += front.eq(Mux(sel, framebuf1, framebuf2))
-        self.sync += back.eq(Mux(sel, framebuf2, framebuf1))
+        self.sync += self.front.eq(Mux(sel, framebuf1, framebuf2))
+        self.sync += self.back.eq(Mux(sel, framebuf2, framebuf1))
 
         # Shorten hsync pulse
-        hsync_prev = Signal()
-        hsync_pulse = Signal()
-        self.sync += hsync_prev.eq(hsync)
-        self.sync += hsync_pulse.eq(hsync & ~hsync_prev)
+        vsync_prev = Signal()
+        vsync_pulse = Signal()
+        self.sync += vsync_prev.eq(vsync)
+        self.sync += vsync_pulse.eq(vsync & ~vsync_prev)
 
-        self.sync += sel.eq((hsync_pulse & drawn) ^ sel)
-        self.sync += self.swapped.eq(hsync_pulse & drawn)
+        self.sync += sel.eq((vsync_pulse & drawn) ^ sel)
+        self.sync += self.swapped.eq(vsync_pulse & drawn)
 
 
 class LCDPatternGenerator(Module):
@@ -158,7 +158,6 @@ class LCDPatternGenerator(Module):
         bram_rp = bram.get_port()
         bram_wp = bram.get_port(write_capable=True)
         self.specials += [bram, bram_rp, bram_wp]
-        self.comb += bram_wp.we.eq(0)
 
         # Make a counter to track the address of the current line,
         # offset for the vertical back porch and compensate for latency.

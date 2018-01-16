@@ -30,21 +30,21 @@ def test_lcd():
 def test_double_buffer():
     fb1 = Signal(25, reset=0x12345)
     fb2 = Signal(25, reset=0xABCDE)
-    hsync = Signal()
+    vsync = Signal()
     drawn = Signal()
-    db = DoubleBuffer(fb1, fb2, hsync, drawn)
+    db = DoubleBuffer(fb1, fb2, vsync, drawn)
 
     def tb():
         yield drawn.eq(0)
-        yield hsync.eq(0)
+        yield vsync.eq(0)
         for _ in range(10):
             yield
 
         # short hsync pulse
-        yield hsync.eq(1)
+        yield vsync.eq(1)
         for _ in range(10):
             yield
-        yield hsync.eq(0)
+        yield vsync.eq(0)
         for _ in range(50):
             yield
 
@@ -54,10 +54,10 @@ def test_double_buffer():
             yield
 
         # another hsync pulse
-        yield hsync.eq(1)
+        yield vsync.eq(1)
         for _ in range(10):
             yield
-        yield hsync.eq(0)
+        yield vsync.eq(0)
         for _ in range(20):
             yield
         yield drawn.eq(0)
