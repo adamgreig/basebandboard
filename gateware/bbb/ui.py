@@ -5,7 +5,9 @@ Copyright 2018 Adam Greig
 """
 
 from migen import Module, Signal, If, FSM, NextValue, NextState, Memory, Mux
+from migen import Cat
 from .axi3 import AXI3ToFromBRAM
+import numpy as np
 
 
 class UIDisplay(Module):
@@ -96,6 +98,23 @@ class UIOverlay(Module):
         wte = 0b111111111111111111111111
         blk = 0b000000000000000000000000
         gry = 0b001111110011111100111111
+        cyn = grn | blu
+        ylw = red | grn
+        mgn = red | blu
+
+        char = Signal(7)
+        fontrow = Signal(4)
+        fontcol = Signal(3)
+        fontfg = Signal(24)
+        fontbg = Signal(24)
+        fontpx = Signal(24)
+        self.submodules.font = UIFont(
+            char, fontrow, fontcol, fontfg, fontbg)
+        self.comb += [
+            fontrow.eq(row & 0b1111),
+            fontcol.eq(col & 0b111),
+            fontpx.eq(self.font.pixel),
+        ]
 
         self.sync += If(
             # Draw white box around display reticule
@@ -121,8 +140,39 @@ class UIOverlay(Module):
             # Draw beta slider
             (row > 47) & (row < 64) & (col > 279),
             If(
+                (col > 359) & (col < (359 + 4*8)),
+                fontfg.eq(blk),
+                If(
+                    col < (280 + beta),
+                    fontbg.eq(cyn))
+                .Else(
+                    fontbg.eq(wte)),
+                If(
+                    col > 360,
+                    self.data.eq(fontpx),
+                ).Else(
+                    If(
+                        col < (280 + beta),
+                        self.data.eq(cyn)
+                    ).Else(
+                        self.data.eq(wte)
+                    )
+                ),
+                If(
+                    col < (359 + 1*8),
+                    char.eq(ord('B')),
+                ).Elif(
+                    col < (359 + 2*8),
+                    char.eq(ord('E')),
+                ).Elif(
+                    col < (359 + 3*8),
+                    char.eq(ord('T')),
+                ).Else(
+                    char.eq(ord('A')),
+                )
+            ).Elif(
                 col < (280 + beta),
-                self.data.eq(grn | blu)
+                self.data.eq(cyn)
             ).Elif(
                 col < 464,
                 self.data.eq(wte)
@@ -133,8 +183,43 @@ class UIOverlay(Module):
             # Draw sigma2 slider
             (row > 79) & (row < 96) & (col > 279),
             If(
+                (col > 359) & (col < (359 + 5*8)),
+                fontfg.eq(blk),
+                If(
+                    col < (280 + sigma2),
+                    fontbg.eq(cyn)
+                ).Else(
+                    fontbg.eq(wte)
+                ),
+                If(
+                    col > 360,
+                    self.data.eq(fontpx),
+                ).Else(
+                    If(
+                        col < (280 + sigma2),
+                        self.data.eq(cyn)
+                    ).Else(
+                        self.data.eq(wte)
+                    )
+                ),
+                If(
+                    col < (359 + 1*8),
+                    char.eq(ord('S')),
+                ).Elif(
+                    col < (359 + 2*8),
+                    char.eq(ord('I')),
+                ).Elif(
+                    col < (359 + 3*8),
+                    char.eq(ord('G')),
+                ).Elif(
+                    col < (359 + 4*8),
+                    char.eq(ord('M')),
+                ).Else(
+                    char.eq(ord('A')),
+                )
+            ).Elif(
                 col < (280 + sigma2),
-                self.data.eq(grn | blu)
+                self.data.eq(cyn)
             ).Elif(
                 col < 464,
                 self.data.eq(wte)
@@ -146,13 +231,101 @@ class UIOverlay(Module):
             (row > 111) & (row < 128) & (col > 279),
             If(
                 col < 340,
-                If(tx_src, self.data.eq(gry)).Else(self.data.eq(red | grn))
+                If(
+                    tx_src,
+                    fontbg.eq(gry),
+                    fontfg.eq(wte),
+                ).Else(
+                    fontbg.eq(ylw),
+                    fontfg.eq(blk),
+                ),
+                If(
+                    col > 280,
+                    self.data.eq(fontpx),
+                ).Else(
+                    If(
+                        tx_src,
+                        self.data.eq(gry),
+                    ).Else(
+                        self.data.eq(ylw),
+                    )
+                ),
+                If(
+                    col < (279 + 1*8),
+                    char.eq(ord('P')),
+                ).Elif(
+                    col < (279 + 2*8),
+                    char.eq(ord('U')),
+                ).Elif(
+                    col < (279 + 3*8),
+                    char.eq(ord('L')),
+                ).Elif(
+                    col < (279 + 4*8),
+                    char.eq(ord('S')),
+                ).Elif(
+                    col < (279 + 5*8),
+                    char.eq(ord('E')),
+                ).Else(
+                    char.eq(ord(' ')),
+                )
             ).Elif(
-                col < 404,
-                self.data.eq(blk)
+                col < 360,
+                self.data.eq(blk),
+                fontbg.eq(blk),
+            ).Elif(
+                col < 384,
+                self.data.eq(fontpx),
+                fontbg.eq(blk),
+                fontfg.eq(wte),
+                If(
+                    col < (359 + 1*8),
+                    char.eq(ord('S')),
+                ).Elif(
+                    col < (359 + 2*8),
+                    char.eq(ord('R')),
+                ).Else(
+                    char.eq(ord('C')),
+                )
+            ).Elif(
+                col < 408,
+                self.data.eq(blk),
+                fontbg.eq(blk),
             ).Elif(
                 col < 464,
-                If(tx_src, self.data.eq(red | blu)).Else(self.data.eq(gry))
+                If(
+                    tx_src,
+                    fontbg.eq(mgn),
+                    fontfg.eq(blk),
+                ).Else(
+                    fontbg.eq(gry),
+                    fontfg.eq(wte),
+                ),
+                If(
+                    col > 409,
+                    self.data.eq(fontpx),
+                ).Else(
+                    If(
+                        tx_src,
+                        self.data.eq(mgn),
+                    ).Else(
+                        self.data.eq(gry),
+                    )
+                ),
+                If(
+                    col < (407 + 1*8),
+                    char.eq(ord('P')),
+                ).Elif(
+                    col < (407 + 2*8),
+                    char.eq(ord('R')),
+                ).Elif(
+                    col < (407 + 3*8),
+                    char.eq(ord('B')),
+                ).Elif(
+                    col < (407 + 4*8),
+                    char.eq(ord('S')),
+                ).Else(
+                    char.eq(ord(' ')),
+                )
             ).Else(
                 self.data.eq(blk)
             )
@@ -163,8 +336,33 @@ class UIOverlay(Module):
                 col < 340,
                 If(tx_en, self.data.eq(gry)).Else(self.data.eq(red))
             ).Elif(
-                col < 404,
-                self.data.eq(blk)
+                col < 352,
+                self.data.eq(blk),
+                fontbg.eq(blk),
+                char.eq(ord(' ')),
+            ).Elif(
+                col < 392,
+                self.data.eq(fontpx),
+                fontbg.eq(blk),
+                fontfg.eq(wte),
+                If(
+                    col < (351 + 1*8),
+                    char.eq(ord('T'))
+                ).Elif(
+                    col < (351 + 2*8),
+                    char.eq(ord('X'))
+                ).Elif(
+                    col < (351 + 3*8),
+                    char.eq(ord(' '))
+                ).Elif(
+                    col < (351 + 4*8),
+                    char.eq(ord('E'))
+                ).Else(
+                    char.eq(ord('N'))
+                )
+            ).Elif(
+                col < 408,
+                self.data.eq(blk),
             ).Elif(
                 col < 464,
                 If(tx_en, self.data.eq(grn)).Else(self.data.eq(gry))
@@ -178,7 +376,31 @@ class UIOverlay(Module):
                 col < 340,
                 If(noise_en, self.data.eq(gry)).Else(self.data.eq(red))
             ).Elif(
-                col < 404,
+                col < 352,
+                self.data.eq(blk),
+                fontbg.eq(blk),
+            ).Elif(
+                col < 392,
+                self.data.eq(fontpx),
+                fontbg.eq(blk),
+                fontfg.eq(wte),
+                If(
+                    col < (351 + 1*8),
+                    char.eq(ord('N'))
+                ).Elif(
+                    col < (351 + 2*8),
+                    char.eq(ord('O'))
+                ).Elif(
+                    col < (351 + 3*8),
+                    char.eq(ord('I'))
+                ).Elif(
+                    col < (351 + 4*8),
+                    char.eq(ord('S'))
+                ).Else(
+                    char.eq(ord('E'))
+                )
+            ).Elif(
+                col < 408,
                 self.data.eq(blk)
             ).Elif(
                 col < 464,
@@ -193,8 +415,8 @@ class UIOverlay(Module):
 
 class UIController(Module):
     def __init__(self, touchscreen):
-        self.thresh_x = Signal(8, reset=127)
-        self.thresh_y = Signal(8, reset=127)
+        self.thresh_x = Signal(8, reset=128)
+        self.thresh_y = Signal(8, reset=128)
         self.beta = Signal(8, reset=100)
         self.sigma2 = Signal(8, reset=100)
         self.tx_src = Signal(1, reset=1)
@@ -265,3 +487,22 @@ class UIController(Module):
                 self.noise_en.eq(1)
             )
         )
+
+
+class UIFont(Module):
+    def __init__(self, char, row, col, fgcolour, bgcolour):
+        """
+        `char`: 7 bit character select. ASCII.
+        `row`: 4 bit row select.
+        `col`: 3 bit col select.
+        `fgcolour`: 24 bit colour for text.
+        `bgcolour`: 24 bit colour for background.
+        `self.pixel`: 24-bit RGB output.
+        """
+        font = np.load("font.npz")['font'].tolist()
+        bram = Memory(1, 2**14, font)
+        port = bram.get_port()
+        self.specials += [bram, port]
+        self.comb += port.adr.eq((char << 7) | (row << 3) | col)
+        self.pixel = Signal(24)
+        self.comb += self.pixel.eq(Mux(port.dat_r, fgcolour, bgcolour))

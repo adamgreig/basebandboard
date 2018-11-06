@@ -1,4 +1,4 @@
-from migen import Module, Signal, ClockDomain, Memory, Cat, If
+from migen import Module, Signal, ClockDomain, Memory, Cat
 from bbb.platform import BBBPlatform, PLL
 from bbb.rgb_lcd import RGBLCD, DoubleBuffer, AR1021TouchController
 from bbb.ui import UIDisplay, UIController
