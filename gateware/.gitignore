@@ -1,2 +1,4 @@
 __pycache__
 *.vcd
+font.npz
+font.png
