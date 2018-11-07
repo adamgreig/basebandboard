@@ -1,3 +1,5 @@
+import numpy as np
+
 from migen import (Module, Signal, Memory, ClockDomain, ClockDomainsRenamer,
                    Cat, READ_FIRST)
 
@@ -193,16 +195,21 @@ class Top(Module):
         self.comb += platform.request("sdram_clock").eq(self.sys_ps.clk)
 
         # PLL for transmitter clock
-        self.submodules.tx_pll = PLL(20, "tx", 1, 4)
+        # (1, 1) gives a 50MHz clock for 50/8=6.25Mbps
+        # Go up to (1, 4) for a 200MHz clock and 200/8=25Mbps
+        self.submodules.tx_pll = PLL(20, "tx", 1, 1)
         self.clock_domains.tx = ClockDomain("tx")
         self.comb += self.tx_pll.clk_in.eq(self.clk50)
         self.comb += self.tx.clk.eq(self.tx_pll.clk_out)
 
         # PLL for receiver clock
+        # (1, 2) gives a 100MHz clock, the max for the ADC
+        # 100MHz RX and 50MHz TX gives 16 ADC samples per TX bit
         self.submodules.rx_pll = PLL(20, "rx", 1, 2)
         self.clock_domains.rx = ClockDomain("rx")
         self.comb += self.rx_pll.clk_in.eq(self.clk50)
         self.comb += self.rx.clk.eq(self.rx_pll.clk_out)
+        adc_samples_per_tx_bit = 16
 
         # Clock the rest of the system logic off the RX PLL
         self.clock_domains.sys = ClockDomain("sys")
@@ -281,20 +288,19 @@ class Top(Module):
         # Wire the transmitter up
         self.comb += self.dac.data.eq(self.tx.x << 2)
 
-        # Create a receiver
-        self.sample_delay = Signal(2, reset=0)
+        # Create a receiver.
+        delay_bits = int(np.log2(adc_samples_per_tx_bit))
+        self.sample_delay = Signal(delay_bits, reset=0)
         self.submodules.rx = ClockDomainsRenamer("rx")(
-            RX(self.prbs_k, self.sample_delay, self.adc_b.data))
+            RX(self.prbs_k, self.sample_delay,
+               adc_samples_per_tx_bit, self.adc_b.data))
 
         # Output the bit clock, PRBS, etc
         leds = [plat.request("user_led", i) for i in range(8)]
-        sw = [plat.request("sw", i) for i in range(4)]
 
         self.comb += [
             leds[6].eq(self.rx.prbsdet.reload),
             leds[7].eq(self.rx.err),
-            self.sample_delay[0].eq(sw[0]),
-            self.sample_delay[1].eq(sw[1]),
         ]
 
 
