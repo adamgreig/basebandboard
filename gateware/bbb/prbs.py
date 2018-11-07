@@ -72,7 +72,8 @@ class PRBSErrorDetector(Module):
         self.reload = Signal(reset=1)
 
         # Select the PRBS input as either the feedback or the input bit
-        self.comb += self.prbs_in.eq(Mux(self.reload, self.bit_in, self.feedback_bit))
+        self.comb += self.prbs_in.eq(Mux(
+            self.reload, self.bit_in, self.feedback_bit))
 
         # Compute current error value and store previous k values of err.
         self.comb += self.err.eq(self.bit_in != self.feedback_bit)
@@ -139,20 +140,26 @@ def test_prbs_error_detector(k):
 
     def tb():
         rx_errors = []
+        valid = []
         lfsr = 1
         for i in range(nbits):
             bit = ((lfsr >> (k-1)) ^ (lfsr >> TAPS[k]-1)) & 1
             lfsr = ((lfsr << 1) | bit) & ((1 << k)-1)
 
-            (yield source.eq(~bit ^ tx_errors[i]))
+            (yield source.eq(bit ^ tx_errors[i]))
             (yield tx_err.eq(tx_errors[i]))
             yield
             rx_errors.append((yield prbsdetector.err))
+            valid.append(1-(yield prbsdetector.reload))
 
         # Check that, outside the initial synchronisation and the
         # large error burst in the middle (plus some resync time),
         # all errors are detected correctly.
-        assert tx_errors[k:nbits//2] == rx_errors[k:nbits//2]
-        assert tx_errors[nbits//2+6*k:] == rx_errors[nbits//2+6*k:]
+        valid = np.array(valid, dtype=np.bool)[:-1]
+        valid_tx_errors = np.array(tx_errors)[:-1][valid]
+        valid_rx_errors = np.array(rx_errors)[1:][valid]
+        print(valid_tx_errors)
+        print(valid_rx_errors)
+        assert valid_tx_errors.tolist() == valid_rx_errors.tolist()
 
     run_simulation(prbsdetector, tb(), vcd_name="dump.vcd")
