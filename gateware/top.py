@@ -1,11 +1,15 @@
-from migen import Module, Signal, Memory, ClockDomain, ClockDomainsRenamer
-from migen import READ_FIRST
+from migen import (Module, Signal, Memory, ClockDomain, ClockDomainsRenamer,
+                   Cat, READ_FIRST)
 
 from bbb.platform import BBBPlatform, PLL
 from bbb.tx import TX
 from bbb.rx import RX
 from bbb.nco import NCO
 from bbb.uart import UARTTxFromMemory, DataToMem
+from bbb.rgb_lcd import RGBLCD, DoubleBuffer, AR1021TouchController
+from bbb.ui import UIDisplay, UIController
+from bbb.sdram import SDRAM
+from bbb.axi3 import AXI3ReadPort, AXI3WritePort
 
 
 class ADCTest(Module):
@@ -75,23 +79,188 @@ class UARTTest(Module):
         self.comb += gpio[0].eq(self.uart.tx_out)
 
 
+class LCDTest(Module):
+    def __init__(self, platform):
+        # Set up clocks.
+        # PLL the 50MHz to 100MHz, and PLL a -3ns phase shift for the SDRAM.
+        self.clk50 = platform.request("clk50")
+        sys_pll = PLL(20, "sys", 1, 2)
+        self.submodules += sys_pll
+        self.clock_domains.sys = ClockDomain("sys")
+        self.comb += sys_pll.clk_in.eq(self.clk50)
+        self.comb += self.sys.clk.eq(sys_pll.clk_out)
+
+        sdram_pll = PLL(20, "sdram", 1, 2, "ZERO_DELAY_BUFFER", -3000)
+        self.submodules += sdram_pll
+        self.clock_domains.sys_ps = ClockDomain("sys_ps")
+        self.comb += sdram_pll.clk_in.eq(self.clk50)
+        self.comb += self.sys_ps.clk.eq(sdram_pll.clk_out)
+        self.comb += platform.request("sdram_clock").eq(self.sys_ps.clk)
+
+        # SDRAM controller
+        timings = {
+            "powerup": 150*200,
+            "t_cac": 2,
+            "t_rcd": 3,
+            "t_rc": 10,
+            "t_ras": 7,
+            "t_rp": 3,
+            "t_mrd": 3,
+            "t_ref": 750,
+        }
+        axirp = AXI3ReadPort(1, 25, 32)
+        axiwp = AXI3WritePort(1, 25, 32)
+        sdram = plat.request("sdram")
+        sdramctl = SDRAM(axirp, axiwp, sdram, timings)
+        self.submodules += sdramctl
+        self.specials += sdramctl.dqt.get_tristate(sdram.dq)
+
+        # LCD controller
+        display = platform.request("lcd")
+        backlight = platform.request("lcd_backlight")
+        self.comb += backlight.eq(1)
+        self.comb += display.disp.eq(1)
+        frontbuf = Signal(25)
+        self.submodules.lcd = RGBLCD(display, axirp, frontbuf)
+
+        # Touchscreen controller
+        touchscreen = platform.request("touchscreen")
+        self.submodules.touch = AR1021TouchController(touchscreen)
+        led = platform.request("user_led")
+        self.comb += led.eq(~touchscreen.cs)
+
+        # UI Controller
+        self.submodules.uicontroller = UIController(self.touch)
+
+        # UI display
+        backbuf = Signal(25)
+        bufswap = Signal()
+        self.submodules.uidisplay = UIDisplay(
+            None, axiwp, backbuf, bufswap,
+            self.uicontroller.thresh_x, self.uicontroller.thresh_y,
+            self.uicontroller.beta, self.uicontroller.sigma2,
+            self.uicontroller.tx_src, self.uicontroller.tx_en,
+            self.uicontroller.noise_en)
+
+        # Double buffer controller for LCD
+        fb1 = Signal(25, reset=0)
+        fb2 = Signal(25, reset=(1 << 20))
+        self.submodules.dblbuf = DoubleBuffer(
+            fb1, fb2, display.vsync, self.uidisplay.drawn)
+        self.comb += [
+            frontbuf.eq(self.dblbuf.front),
+            backbuf.eq(self.dblbuf.back),
+            bufswap.eq(self.dblbuf.swapped)
+        ]
+
+        # Make a BRAM to fill with touchscreen data and dump over UART
+        uart_ram = Memory(32, 4)
+        uartreadport = uart_ram.get_port(mode=1)
+        uartwriteport = uart_ram.get_port(write_capable=True, mode=0)
+        self.specials += [uart_ram, uartreadport, uartwriteport]
+
+        touch_x = Signal(16)
+        self.comb += touch_x.eq(self.touch.x)
+        touch_y = Signal(16)
+        self.comb += touch_y.eq(self.touch.y)
+        touchdata = Signal(32)
+        self.comb += touchdata.eq(Cat(touch_x, touch_y))
+
+        storetrig = Signal()
+        self.sync += storetrig.eq(self.touch.newdata)
+        touch2ram = DataToMem(touchdata, uartwriteport, 2, storetrig)
+        self.submodules += touch2ram
+
+        uarttrig = Signal()
+        self.sync += uarttrig.eq(storetrig)
+        ram2uart = UARTTxFromMemory(100, uartreadport, 32, 0, 2, uarttrig)
+        self.submodules += ram2uart
+        uart = platform.request("uart")
+        self.comb += uart.eq(ram2uart.tx_out)
+
+
 class Top(Module):
     def __init__(self, platform):
         # Set up clocking.
         self.clk50 = platform.request("clk50")
 
+        # PLL for SDRAM with -3ns delay
+        self.submodules.sdram_pll = PLL(
+            20, "sdram", 1, 2, "ZERO_DELAY_BUFFER", -3000)
+        self.clock_domains.sys_ps = ClockDomain("sys_ps")
+        self.comb += self.sdram_pll.clk_in.eq(self.clk50)
+        self.comb += self.sys_ps.clk.eq(self.sdram_pll.clk_out)
+        self.comb += platform.request("sdram_clock").eq(self.sys_ps.clk)
+
+        # PLL for transmitter clock
         self.submodules.tx_pll = PLL(20, "tx", 1, 4)
         self.clock_domains.tx = ClockDomain("tx")
         self.comb += self.tx_pll.clk_in.eq(self.clk50)
         self.comb += self.tx.clk.eq(self.tx_pll.clk_out)
 
+        # PLL for receiver clock
         self.submodules.rx_pll = PLL(20, "rx", 1, 2)
         self.clock_domains.rx = ClockDomain("rx")
         self.comb += self.rx_pll.clk_in.eq(self.clk50)
         self.comb += self.rx.clk.eq(self.rx_pll.clk_out)
 
+        # Clock the rest of the system logic off the RX PLL
         self.clock_domains.sys = ClockDomain("sys")
         self.comb += self.sys.clk.eq(self.rx_pll.clk_out)
+
+        # SDRAM controller
+        timings = {
+            "powerup": 150*200,
+            "t_cac": 2,
+            "t_rcd": 3,
+            "t_rc": 10,
+            "t_ras": 7,
+            "t_rp": 3,
+            "t_mrd": 3,
+            "t_ref": 750,
+        }
+        axirp = AXI3ReadPort(1, 25, 32)
+        axiwp = AXI3WritePort(1, 25, 32)
+        sdram = plat.request("sdram")
+        sdramctl = SDRAM(axirp, axiwp, sdram, timings)
+        self.submodules += sdramctl
+        self.specials += sdramctl.dqt.get_tristate(sdram.dq)
+
+        # LCD controller
+        display = platform.request("lcd")
+        backlight = platform.request("lcd_backlight")
+        self.comb += backlight.eq(1)
+        self.comb += display.disp.eq(1)
+        frontbuf = Signal(25)
+        self.submodules.lcd = RGBLCD(display, axirp, frontbuf)
+
+        # Touchscreen controller
+        touchscreen = platform.request("touchscreen")
+        self.submodules.touch = AR1021TouchController(touchscreen)
+
+        # UI Controller
+        self.submodules.uicontroller = UIController(self.touch)
+
+        # UI display
+        backbuf = Signal(25)
+        bufswap = Signal()
+        self.submodules.uidisplay = UIDisplay(
+            None, axiwp, backbuf, bufswap,
+            self.uicontroller.thresh_x, self.uicontroller.thresh_y,
+            self.uicontroller.beta, self.uicontroller.sigma2,
+            self.uicontroller.tx_src, self.uicontroller.tx_en,
+            self.uicontroller.noise_en)
+
+        # Double buffer controller for LCD
+        fb1 = Signal(25, reset=0)
+        fb2 = Signal(25, reset=(1 << 20))
+        self.submodules.dblbuf = DoubleBuffer(
+            fb1, fb2, display.vsync, self.uidisplay.drawn)
+        self.comb += [
+            frontbuf.eq(self.dblbuf.front),
+            backbuf.eq(self.dblbuf.back),
+            bufswap.eq(self.dblbuf.swapped)
+        ]
 
         # Set up the DAC and ADC peripherals
         self.dac = plat.request("dac")
@@ -101,24 +270,16 @@ class Top(Module):
 
         # Create a transmitter.
         self.prbs_k = 31
-        self.bit_en = Signal(reset=1)
-        self.shape_sel = Signal(5, reset=0)
-        self.noise_en = Signal(reset=0)
-        self.noise_var = Signal(4, reset=10)
         self.submodules.tx = ClockDomainsRenamer("tx")(
-            TX(self.prbs_k, self.bit_en, self.shape_sel,
-               self.noise_en, self.noise_var))
+            TX(self.prbs_k,
+               self.uicontroller.tx_en,
+               self.uicontroller.tx_src,
+               self.uicontroller.beta[2:7],
+               self.uicontroller.noise_en,
+               self.uicontroller.sigma2[3:7]))
 
         # Wire the transmitter up
-        leds = [plat.request("user_led", i) for i in range(8)]
-        sw = [plat.request("sw", i) for i in range(4)]
-        self.comb += [
-            #self.bit_en.eq(sw[0]),
-            #self.noise_en.eq(sw[1]),
-            self.shape_sel[0].eq(sw[2]),
-            self.shape_sel[1].eq(sw[3]),
-            self.dac.data.eq(self.tx.x << 2),
-        ]
+        self.comb += self.dac.data.eq(self.tx.x << 2)
 
         # Create a receiver
         self.sample_delay = Signal(2, reset=0)
@@ -126,54 +287,15 @@ class Top(Module):
             RX(self.prbs_k, self.sample_delay, self.adc_b.data))
 
         # Output the bit clock, PRBS, etc
-        gpio1 = plat.request("gpio_1")
-        self.comb += [
-            gpio1[0].eq(self.tx.shaper.prbsclk.clk),
-            # gpio1[1].eq(self.tx.shaper.prbs.x),
-            gpio1[1].eq(self.tx.shaper.sr[4]),
-            gpio1[2].eq(self.rx.prbsclk.clk),
-            gpio1[3].eq(self.rx.sliced),
-            gpio1[4].eq(self.rx.prbsdet.bit_in),
-            # gpio1[4].eq(self.rx.delay.x),
-            gpio1[5].eq(self.rx.prbsdet.feedback_bit),
-            gpio1[6].eq(self.rx.err),
-            gpio1[7].eq(self.rx.prbsdet.reload),
-        ]
+        leds = [plat.request("user_led", i) for i in range(8)]
+        sw = [plat.request("sw", i) for i in range(4)]
 
         self.comb += [
-            leds[0].eq(self.bit_en),
-            leds[1].eq(self.noise_en),
-            leds[2].eq(self.shape_sel[0]),
-            leds[3].eq(self.shape_sel[1]),
             leds[6].eq(self.rx.prbsdet.reload),
             leds[7].eq(self.rx.err),
             self.sample_delay[0].eq(sw[0]),
             self.sample_delay[1].eq(sw[1]),
         ]
-
-        # Implement saving ADC to memory and dumping over serial
-        ram = Memory(10, 8192)
-        readport = ram.get_port(mode=1)
-        writeport = ram.get_port(write_capable=True, mode=0)
-        self.specials += [ram, readport, writeport]
-
-        writetrig = Signal()
-        readtrig = Signal()
-
-        adc2ram = DataToMem(self.adc_b.data, writeport, 8192, writetrig)
-        self.submodules.adc2ram = ClockDomainsRenamer("rx")(adc2ram)
-
-        rxclk = 100e6
-        baud = 1e6
-        divider = int(rxclk / baud)
-        ram2uart = UARTTxFromMemory(divider, readport, 10, 0, 8192, readtrig)
-        self.submodules.ram2uart = ClockDomainsRenamer("rx")(ram2uart)
-
-        key0 = plat.request("key")
-        key1 = plat.request("key")
-        self.comb += writetrig.eq(~key0)
-        self.comb += readtrig.eq(~key1)
-        self.comb += gpio1[8].eq(self.ram2uart.tx_out)
 
 
 if __name__ == "__main__":

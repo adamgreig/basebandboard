@@ -7,6 +7,8 @@ with controllable noise power.
 Copyright 2017 Adam Greig
 """
 
+import numpy as np
+
 from migen import Module, Signal, Mux
 
 from bbb.rng import LUTOPT, CLTGRNG
@@ -15,16 +17,31 @@ from bbb.prbs import PRBS
 from bbb.bitshaper import PRBSShaper
 
 
+class Pulser(Module):
+    """
+    A simple pulse generator.
+    Output `x` goes high for 1 period every 256 clock cycles.
+    """
+    def __init__(self):
+        self.x = Signal()
+
+        self.counter = Signal(8)
+        self.sync += self.counter.eq(self.counter + 1)
+        self.comb += self.x.eq(self.counter == 0)
+
+
 class TX(Module):
     """
     A complete baseband transmitter module. Generates 12 bit signed samples
     of the signal to be output, one sample per clock, with the underlying
     data clock at 1/8 of the module clock.
     """
-    def __init__(self, prbs_k, bit_en, shape_sel, noise_en, noise_var):
+    def __init__(self, prbs_k, bit_en, src_sel,
+                 shape_sel, noise_en, noise_var):
         """
         `prbs_k`: PRBS sequence length parameter, 7, 9, 11, 15, 20, 23, or 31.
         `bit_en`: a 1-bit signal that enables or disables the shaped bits.
+        `src_sel`: a 1-bit signal the selects between PRBS (0) and Pulse (1)
         `shape_sel`: a 5-bit signal which selects which pulse shape is used.
         `noise_en`: a 1-bit signal that enables or disables the noise.
         `noise_var`: a 4-bit unsigned signal which controls the noise variance.
@@ -32,12 +49,21 @@ class TX(Module):
         Output `x` is the 12-bit signed sum of the shaped data bits (if
         enabled) and the scaled Gaussian noise (if enabled).
         """
-        # Create the shaped PRBS generator
-        self.betas = [0.0, 0.5, 1.0]
+        # Create the shaped PRBS/pulse generator
+        self.betas = np.linspace(0, 1, 32).tolist()
+
         self.prbs = PRBS(prbs_k)
-        self.shaper = PRBSShaper.from_rcf(self.prbs, shape_sel, self.betas)
-        self.bitmux = Mux(bit_en, self.shaper.x, Signal((12, True), reset=0))
-        self.submodules += self.shaper
+        self.prbs_shaper = PRBSShaper.from_rcf(
+            self.prbs, shape_sel, self.betas)
+        self.submodules.prbs_shaper = self.prbs_shaper
+
+        self.pulse = Pulser()
+        self.pulse_shaper = PRBSShaper.from_rcf(
+            self.pulse, shape_sel, self.betas)
+        self.submodules.pulse_shaper = self.pulse_shaper
+
+        self.srcmux = Mux(src_sel, self.prbs_shaper.x, self.pulse_shaper.x)
+        self.bitmux = Mux(bit_en, self.srcmux, Signal((12, True), reset=0))
 
         # Create the Gaussian random noise generator.
         # Note since the URNG is 256bit, the GRNG is 8 bit, -128 to +127.

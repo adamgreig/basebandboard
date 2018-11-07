@@ -4,8 +4,7 @@ User interface.
 Copyright 2018 Adam Greig
 """
 
-from migen import Module, Signal, If, FSM, NextValue, NextState, Memory, Mux
-from migen import Cat
+from migen import Module, Signal, If, FSM, NextState, Memory, Mux
 from .axi3 import AXI3ToFromBRAM
 import numpy as np
 
@@ -138,12 +137,12 @@ class UIOverlay(Module):
             )
         ).Elif(
             # Draw beta slider
-            (row > 47) & (row < 64) & (col > 279),
+            (row > 47) & (row < 64) & (col > 307),
             If(
                 (col > 359) & (col < (359 + 4*8)),
                 fontfg.eq(blk),
                 If(
-                    col < (280 + beta),
+                    col < (308 + beta),
                     fontbg.eq(cyn))
                 .Else(
                     fontbg.eq(wte)),
@@ -152,7 +151,7 @@ class UIOverlay(Module):
                     self.data.eq(fontpx),
                 ).Else(
                     If(
-                        col < (280 + beta),
+                        col < (308 + beta),
                         self.data.eq(cyn)
                     ).Else(
                         self.data.eq(wte)
@@ -171,22 +170,22 @@ class UIOverlay(Module):
                     char.eq(ord('A')),
                 )
             ).Elif(
-                col < (280 + beta),
+                col < (308 + beta),
                 self.data.eq(cyn)
             ).Elif(
-                col < 464,
+                col < 435,
                 self.data.eq(wte)
             ).Else(
                 self.data.eq(blk)
             )
         ).Elif(
             # Draw sigma2 slider
-            (row > 79) & (row < 96) & (col > 279),
+            (row > 79) & (row < 96) & (col > 307),
             If(
                 (col > 359) & (col < (359 + 5*8)),
                 fontfg.eq(blk),
                 If(
-                    col < (280 + sigma2),
+                    col < (308 + sigma2),
                     fontbg.eq(cyn)
                 ).Else(
                     fontbg.eq(wte)
@@ -196,7 +195,7 @@ class UIOverlay(Module):
                     self.data.eq(fontpx),
                 ).Else(
                     If(
-                        col < (280 + sigma2),
+                        col < (308 + sigma2),
                         self.data.eq(cyn)
                     ).Else(
                         self.data.eq(wte)
@@ -218,10 +217,10 @@ class UIOverlay(Module):
                     char.eq(ord('A')),
                 )
             ).Elif(
-                col < (280 + sigma2),
+                col < (308 + sigma2),
                 self.data.eq(cyn)
             ).Elif(
-                col < 464,
+                col < 435,
                 self.data.eq(wte)
             ).Else(
                 self.data.eq(blk)
@@ -417,8 +416,8 @@ class UIController(Module):
     def __init__(self, touchscreen):
         self.thresh_x = Signal(8, reset=128)
         self.thresh_y = Signal(8, reset=128)
-        self.beta = Signal(8, reset=100)
-        self.sigma2 = Signal(8, reset=100)
+        self.beta = Signal(7, reset=64)
+        self.sigma2 = Signal(7, reset=64)
         self.tx_src = Signal(1, reset=1)
         self.tx_en = Signal(1, reset=1)
         self.noise_en = Signal(1, reset=0)
@@ -455,12 +454,12 @@ class UIController(Module):
                 self.thresh_y.eq(y - 8)
             ).Elif(
                 # Beta slider
-                (y > 47) & (y < 64) & (x > 279) & (x < 464),
-                self.beta.eq(x - 279)
+                (y > 47) & (y < 64) & (x > 307) & (x < 436),
+                self.beta.eq(x - 308)
             ).Elif(
                 # Sigma slider
-                (y > 49) & (y < 96) & (x > 279) & (x < 464),
-                self.sigma2.eq(x - 279)
+                (y > 79) & (y < 96) & (x > 307) & (x < 436),
+                self.sigma2.eq(x - 308)
             ).Elif(
                 # tx src toggle left
                 (y > 111) & (y < 128) & (x > 279) & (x < 340),
