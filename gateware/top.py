@@ -215,6 +215,32 @@ class Top(Module):
         self.clock_domains.sys = ClockDomain("sys")
         self.comb += self.sys.clk.eq(self.rx_pll.clk_out)
 
+        # Set up the DAC and ADC peripherals
+        self.dac = plat.request("dac")
+        self.comb += self.dac.clk.eq(self.tx.clk)
+        self.adc_b = plat.request("adc_b")
+        self.comb += self.adc_b.clk.eq(~self.rx.clk)
+
+        # Create a transmitter.
+        self.prbs_k = 31
+        self.submodules.tx = ClockDomainsRenamer("tx")(
+            TX(self.prbs_k,
+               self.uicontroller.tx_en,
+               self.uicontroller.tx_src,
+               self.uicontroller.beta[2:7],
+               self.uicontroller.noise_en,
+               self.uicontroller.sigma2[3:7]))
+
+        # Wire the transmitter up
+        self.comb += self.dac.data.eq(self.tx.x << 2)
+
+        # Create a receiver.
+        delay_bits = int(np.log2(adc_samples_per_tx_bit))
+        self.sample_delay = Signal(delay_bits, reset=0)
+        self.submodules.rx = ClockDomainsRenamer("rx")(
+            RX(self.prbs_k, self.sample_delay,
+               adc_samples_per_tx_bit, self.adc_b.data))
+
         # SDRAM controller
         timings = {
             "powerup": 150*200,
@@ -267,40 +293,6 @@ class Top(Module):
             frontbuf.eq(self.dblbuf.front),
             backbuf.eq(self.dblbuf.back),
             bufswap.eq(self.dblbuf.swapped)
-        ]
-
-        # Set up the DAC and ADC peripherals
-        self.dac = plat.request("dac")
-        self.comb += self.dac.clk.eq(self.tx.clk)
-        self.adc_b = plat.request("adc_b")
-        self.comb += self.adc_b.clk.eq(~self.rx.clk)
-
-        # Create a transmitter.
-        self.prbs_k = 31
-        self.submodules.tx = ClockDomainsRenamer("tx")(
-            TX(self.prbs_k,
-               self.uicontroller.tx_en,
-               self.uicontroller.tx_src,
-               self.uicontroller.beta[2:7],
-               self.uicontroller.noise_en,
-               self.uicontroller.sigma2[3:7]))
-
-        # Wire the transmitter up
-        self.comb += self.dac.data.eq(self.tx.x << 2)
-
-        # Create a receiver.
-        delay_bits = int(np.log2(adc_samples_per_tx_bit))
-        self.sample_delay = Signal(delay_bits, reset=0)
-        self.submodules.rx = ClockDomainsRenamer("rx")(
-            RX(self.prbs_k, self.sample_delay,
-               adc_samples_per_tx_bit, self.adc_b.data))
-
-        # Output the bit clock, PRBS, etc
-        leds = [plat.request("user_led", i) for i in range(8)]
-
-        self.comb += [
-            leds[6].eq(self.rx.prbsdet.reload),
-            leds[7].eq(self.rx.err),
         ]
 
 
