@@ -12,6 +12,7 @@ from bbb.rgb_lcd import RGBLCD, DoubleBuffer, AR1021TouchController
 from bbb.ui import UIDisplay, UIController
 from bbb.sdram import SDRAM
 from bbb.axi3 import AXI3ReadPort, AXI3WritePort
+from bbb.dso import DSO
 
 
 class ADCTest(Module):
@@ -221,26 +222,6 @@ class Top(Module):
         self.adc_b = plat.request("adc_b")
         self.comb += self.adc_b.clk.eq(~self.rx.clk)
 
-        # Create a transmitter.
-        self.prbs_k = 31
-        self.submodules.tx = ClockDomainsRenamer("tx")(
-            TX(self.prbs_k,
-               self.uicontroller.tx_en,
-               self.uicontroller.tx_src,
-               self.uicontroller.beta[2:7],
-               self.uicontroller.noise_en,
-               self.uicontroller.sigma2[3:7]))
-
-        # Wire the transmitter up
-        self.comb += self.dac.data.eq(self.tx.x << 2)
-
-        # Create a receiver.
-        delay_bits = int(np.log2(adc_samples_per_tx_bit))
-        self.sample_delay = Signal(delay_bits, reset=0)
-        self.submodules.rx = ClockDomainsRenamer("rx")(
-            RX(self.prbs_k, self.sample_delay,
-               adc_samples_per_tx_bit, self.adc_b.data))
-
         # SDRAM controller
         timings = {
             "powerup": 150*200,
@@ -258,6 +239,15 @@ class Top(Module):
         sdramctl = SDRAM(axirp, axiwp, sdram, timings)
         self.submodules += sdramctl
         self.specials += sdramctl.dqt.get_tristate(sdram.dq)
+
+        # Create a DSO to store ADC samples
+        sample = Signal((8, True))
+        self.comb += sample.eq(self.adc_b.data[2:])
+        linectr = Signal(8, reset=64)
+        drawn_prev = Signal()
+        drawn_pulse = Signal()
+        self.sync += linectr.eq(linectr + 1),
+        self.submodules.dso = DSO(linectr[-1], drawn_pulse, sample)
 
         # LCD controller
         display = platform.request("lcd")
@@ -278,11 +268,15 @@ class Top(Module):
         backbuf = Signal(25)
         bufswap = Signal()
         self.submodules.uidisplay = UIDisplay(
-            None, axiwp, backbuf, bufswap,
+            None, axiwp, backbuf, bufswap, self.dso.readport,
             self.uicontroller.thresh_x, self.uicontroller.thresh_y,
             self.uicontroller.beta, self.uicontroller.sigma2,
             self.uicontroller.tx_src, self.uicontroller.tx_en,
             self.uicontroller.noise_en)
+        self.sync += [
+            drawn_prev.eq(self.uidisplay.drawn),
+            drawn_pulse.eq(self.uidisplay.drawn & ~drawn_prev),
+        ]
 
         # Double buffer controller for LCD
         fb1 = Signal(25, reset=0)
@@ -294,6 +288,26 @@ class Top(Module):
             backbuf.eq(self.dblbuf.back),
             bufswap.eq(self.dblbuf.swapped)
         ]
+
+        # Create a transmitter.
+        self.prbs_k = 31
+        self.submodules.tx = ClockDomainsRenamer("tx")(
+            TX(self.prbs_k,
+               self.uicontroller.tx_en,
+               self.uicontroller.tx_src,
+               self.uicontroller.beta[2:7],
+               self.uicontroller.noise_en,
+               self.uicontroller.sigma2[3:7]))
+
+        # Wire the transmitter up
+        self.comb += self.dac.data.eq(self.tx.x << 2)
+
+        # Create a receiver.
+        delay_bits = int(np.log2(adc_samples_per_tx_bit))
+        self.sample_delay = Signal(delay_bits, reset=0)
+        self.submodules.rx = ClockDomainsRenamer("rx")(
+            RX(self.prbs_k, adc_samples_per_tx_bit,
+               self.sample_delay, self.adc_b.data))
 
 
 if __name__ == "__main__":

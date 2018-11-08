@@ -4,13 +4,13 @@ User interface.
 Copyright 2018 Adam Greig
 """
 
-from migen import Module, Signal, If, FSM, NextState, Memory, Mux
+from migen import Module, Signal, If, FSM, NextState, Memory, Mux, Cat
 from .axi3 import AXI3ToFromBRAM
 import numpy as np
 
 
 class UIDisplay(Module):
-    def __init__(self, axi3_read, axi3_write, backbuf, trigger,
+    def __init__(self, axi3_read, axi3_write, backbuf, trigger, dsorp,
                  thresh_x, thresh_y, beta, sigma2, tx_src, tx_en, noise_en):
         self.drawn = Signal()
 
@@ -54,9 +54,9 @@ class UIDisplay(Module):
                                    480, axi3_burst_length=16)
         self.submodules += axi3_bram
 
-        self.submodules.overlay = UIOverlay(row, col, thresh_x, thresh_y,
-                                            beta, sigma2, tx_src, tx_en,
-                                            noise_en)
+        self.submodules.overlay = UIOverlay(
+            row, col, dsorp, thresh_x, thresh_y, beta, sigma2, tx_src, tx_en,
+            noise_en)
 
         self.comb += bram_pa.adr.eq(col)
         self.comb += bram_pa.we.eq(1)
@@ -87,9 +87,19 @@ class UIDisplay(Module):
 
 
 class UIOverlay(Module):
-    def __init__(self, row, col,
+    def __init__(self, row, col, dsorp,
                  thresh_x, thresh_y, beta, sigma2, tx_src, tx_en, noise_en):
         self.data = Signal(24)
+
+        dsopx = Signal()
+        dsorow = Signal(8)
+        dsocol = Signal(6)
+        self.comb += [
+            dsorow.eq(row - 8),
+            dsocol.eq((col - 8) >> 2),
+            dsorp.adr.eq(Cat(dsocol, dsorow))
+        ]
+        self.sync += dsopx.eq(dsorp.dat_r)
 
         red = 0b000000000000000011111111
         grn = 0b000000001111111100000000
@@ -133,7 +143,8 @@ class UIOverlay(Module):
                 (((col - 8) & 0b1111) == 0) & (((row - 8) & 0b1111) == 0),
                 self.data.eq(wte)
             ).Else(
-                self.data.eq(blk)
+                If(dsopx == 1, self.data.eq(blu))
+                .Else(self.data.eq(blk))
             )
         ).Elif(
             # Draw beta slider
@@ -503,5 +514,7 @@ class UIFont(Module):
         port = bram.get_port()
         self.specials += [bram, port]
         self.comb += port.adr.eq((char << 7) | (row << 3) | col)
+        pixel_set = Signal()
+        self.comb += pixel_set.eq(port.dat_r)
         self.pixel = Signal(24)
-        self.comb += self.pixel.eq(Mux(port.dat_r, fgcolour, bgcolour))
+        self.comb += self.pixel.eq(Mux(pixel_set, fgcolour, bgcolour))

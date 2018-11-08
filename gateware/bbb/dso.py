@@ -65,9 +65,10 @@ class DSO(Module):
 
         self.fsm.act(
             "WRITELINE",
-            self.rowctr.eq(127 - sample),
+            NextValue(self.rowctr, 127 - sample),
             NextValue(self.colctr, self.colctr + 1),
-            If(self.colctr == 63, NextState("WAIT")),
+            If(self.colctr == 63, NextState("WAIT"))
+            .Elif(frame == 1, NextState("CLEAR"))
         )
 
 
@@ -119,7 +120,7 @@ def test_dso():
         for row in range(256):
             for col in range(64):
                 mem[col, row] = (yield dso.mem[row << 6 | col])
-            # print(f'{row:03d}', ''.join(f'{x}' for x in mem[:, row]))
+            print(f'{row:03d}', ''.join(f'{x}' for x in mem[:, row]))
         assert np.all(mem == target)
 
     run_simulation(dso, tb(), vcd_name="dso.vcd")
